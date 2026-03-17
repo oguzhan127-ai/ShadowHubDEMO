@@ -65,8 +65,8 @@ local function makeGui(name)
     sg.ResetOnSpawn = false
     sg.IgnoreGuiInset = true
     sg.DisplayOrder = 999
+    sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     if isMobile then
-        -- PlayerGui is most reliable on mobile executors
         sg.Parent = player:WaitForChild("PlayerGui")
     else
         local ok = false
