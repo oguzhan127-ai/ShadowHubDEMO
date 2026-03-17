@@ -84,22 +84,29 @@ main.Parent = sg
 corner(main, 14)
 stroke(main, C.stroke, 1.5, 0.2)
 
--- Mobile drag
+-- Mobile drag — topbar only, with threshold to distinguish tap vs drag
 if isMobile then
-    local da, ds, dp = false, nil, nil
-    main.InputBegan:Connect(function(i)
+    local dragging, dragStart, frameStart, touchId = false, nil, nil, nil
+    local THRESH = 8
+    local moved = false
+
+    topbar.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.Touch then
-            da = true; ds = i.Position; dp = main.Position
+            dragging = true; moved = false; touchId = i
+            dragStart = Vector2.new(i.Position.X, i.Position.Y)
+            frameStart = main.Position
         end
     end)
-    main.InputChanged:Connect(function(i)
-        if da and i.UserInputType == Enum.UserInputType.Touch then
-            local d = i.Position - ds
-            main.Position = UDim2.new(0.5, dp.X.Offset + d.X - FW/2, 0.5, dp.Y.Offset + d.Y - FH/2)
+    UserInputService.InputChanged:Connect(function(i)
+        if not dragging or i ~= touchId then return end
+        local d = Vector2.new(i.Position.X, i.Position.Y) - dragStart
+        if d.Magnitude > THRESH then moved = true end
+        if moved then
+            main.Position = UDim2.new(0, frameStart.X.Offset + d.X, 0, frameStart.Y.Offset + d.Y)
         end
     end)
-    main.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.Touch then da = false end
+    UserInputService.InputEnded:Connect(function(i)
+        if i == touchId then dragging = false; touchId = nil end
     end)
 end
 
@@ -288,7 +295,7 @@ local function makeTab(name, icon)
         switchTab(name)
     end
     btn.MouseButton1Click:Connect(onClick)
-    btn.TouchTap:Connect(function()  onClick() end)
+    btn.Activated:Connect(function()  onClick() end)
     return btn
 end
 
@@ -369,7 +376,7 @@ local function makeSwitch(parent, label, default, cb)
         if cb then task.spawn(cb, v) end
     end
     hit.MouseButton1Click:Connect(function() setState(not state) end)
-    hit.TouchTap:Connect(function() setState(not state) end)
+    hit.Activated:Connect(function() setState(not state) end)
     return { get = function() return state end, set = setState }
 end
 
@@ -1152,7 +1159,7 @@ do
         if sbState then enableSB() else disableSB() end
     end
     hit.MouseButton1Click:Connect(toggleSB)
-    hit.TouchTap:Connect(function()  toggleSB() end)
+    hit.Activated:Connect(function()  toggleSB() end)
 end
 
 -- Steal Speed row with inline value box
@@ -1222,7 +1229,7 @@ do
         if ssState then enableSS() else disableSS() end
     end
     hit.MouseButton1Click:Connect(toggleSS)
-    hit.TouchTap:Connect(function()  toggleSS() end)
+    hit.Activated:Connect(function()  toggleSS() end)
 end
 
 makeLabel(moveSection, "Steal Speed activates while carrying a brainrot.")
@@ -1298,7 +1305,7 @@ do
         if igState then enableIG() else disableIG() end
     end
     hit.MouseButton1Click:Connect(toggleIG)
-    hit.TouchTap:Connect(function()  toggleIG() end)
+    hit.Activated:Connect(function()  toggleIG() end)
 end
 
 -- Auto / Manual pill
@@ -1347,9 +1354,9 @@ do
     end
 
     autoBtn.MouseButton1Click:Connect(function() setAuto(true)  end)
-    autoBtn.TouchTap:Connect(function()  setAuto(true) end)
+    autoBtn.Activated:Connect(function()  setAuto(true) end)
     manualBtn.MouseButton1Click:Connect(function() setAuto(false) end)
-    manualBtn.TouchTap:Connect(function()  setAuto(false) end)
+    manualBtn.Activated:Connect(function()  setAuto(false) end)
 end
 
 makeLabel(moveSection, "Manual: press E yourself. Auto: fires automatically.")
@@ -1670,7 +1677,7 @@ leftHit.MouseButton1Click:Connect(function()
         end)
     end
 end)
-leftHit.TouchTap:Connect(function()  leftHit.MouseButton1Click:Fire() end)
+leftHit.Activated:Connect(function()  leftHit.MouseButton1Click:Fire() end)
 
 -- Auto Play 2 (Right) — doc6 exact flow
 rightHit.MouseButton1Click:Connect(function()
@@ -1704,7 +1711,7 @@ rightHit.MouseButton1Click:Connect(function()
         end)
     end
 end)
-rightHit.TouchTap:Connect(function()  rightHit.MouseButton1Click:Fire() end)
+rightHit.Activated:Connect(function()  rightHit.MouseButton1Click:Fire() end)
 
 -- Autoplay toggle shows/hides floating buttons
 makeSwitch(duelsSection, "Autoplay", false, function(on)
@@ -1754,6 +1761,6 @@ local function doClose()
 end
 
 minimizeBtn.MouseButton1Click:Connect(doMinimize)
-minimizeBtn.TouchTap:Connect(function()  doMinimize() end)
+minimizeBtn.Activated:Connect(function()  doMinimize() end)
 closeBtn.MouseButton1Click:Connect(doClose)
-closeBtn.TouchTap:Connect(function()  doClose() end)
+closeBtn.Activated:Connect(function()  doClose() end)
