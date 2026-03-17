@@ -98,7 +98,8 @@ if isMobile then
         if i.UserInputType == Enum.UserInputType.Touch then
             dragging = true; touchId = i
             dragStart = Vector2.new(i.Position.X, i.Position.Y)
-            frameStart = Vector2.new(main.Position.X.Offset, main.Position.Y.Offset)
+            -- Use AbsolutePosition — this is always the real screen position
+            frameStart = Vector2.new(main.AbsolutePosition.X, main.AbsolutePosition.Y)
         end
     end)
     UserInputService.InputChanged:Connect(function(i)
