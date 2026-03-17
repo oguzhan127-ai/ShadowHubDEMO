@@ -84,43 +84,7 @@ main.Parent = sg
 corner(main, 14)
 stroke(main, C.stroke, 1.5, 0.2)
 
--- Mobile drag — exact same pattern as duel buttons (which work)
-if isMobile then
-    local dragging, dragStart, frameStart, touchId = false, nil, nil, nil
-    local hasDragged = false
-    local DRAG_THRESH = 6
-
-    local dragHandle = Instance.new("TextButton")
-    dragHandle.Size = UDim2.new(1, -100, 1, 0)
-    dragHandle.BackgroundTransparency = 1
-    dragHandle.Text = ""
-    dragHandle.AutoButtonColor = false
-    dragHandle.ZIndex = 1
-    dragHandle.Parent = topbar
-
-    dragHandle.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1
-        or inp.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; hasDragged = false; touchId = inp
-            dragStart = Vector2.new(inp.Position.X, inp.Position.Y)
-            frameStart = main.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(inp)
-        if not dragging or inp ~= touchId then return end
-        local delta = Vector2.new(inp.Position.X, inp.Position.Y) - dragStart
-        if delta.Magnitude > DRAG_THRESH then hasDragged = true end
-        if hasDragged then
-            main.Position = UDim2.new(
-                frameStart.X.Scale, frameStart.X.Offset + delta.X,
-                frameStart.Y.Scale, frameStart.Y.Offset + delta.Y
-            )
-        end
-    end)
-    dragHandle.InputEnded:Connect(function(inp)
-        if inp == touchId then dragging = false; touchId = nil end
-    end)
-end
+-- (mobile drag added after topbar is created below)
 
 -- Pop-in animation (skip on mobile — start at full size)
 if not isMobile then
@@ -186,6 +150,44 @@ end
 
 local closeBtn    = topBtn(-36, "×", C.danger)
 local minimizeBtn = topBtn(-72, "−", C.accent2)
+
+-- Mobile drag — added here so topbar exists
+if isMobile then
+    local dragging, dragStart, frameStart, touchId = false, nil, nil, nil
+    local hasDragged = false
+    local DRAG_THRESH = 6
+
+    local dragHandle = Instance.new("TextButton")
+    dragHandle.Size = UDim2.new(1, -100, 1, 0)
+    dragHandle.BackgroundTransparency = 1
+    dragHandle.Text = ""
+    dragHandle.AutoButtonColor = false
+    dragHandle.ZIndex = 1
+    dragHandle.Parent = topbar
+
+    dragHandle.InputBegan:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1
+        or inp.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; hasDragged = false; touchId = inp
+            dragStart = Vector2.new(inp.Position.X, inp.Position.Y)
+            frameStart = main.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(inp)
+        if not dragging or inp ~= touchId then return end
+        local delta = Vector2.new(inp.Position.X, inp.Position.Y) - dragStart
+        if delta.Magnitude > DRAG_THRESH then hasDragged = true end
+        if hasDragged then
+            main.Position = UDim2.new(
+                frameStart.X.Scale, frameStart.X.Offset + delta.X,
+                frameStart.Y.Scale, frameStart.Y.Offset + delta.Y
+            )
+        end
+    end)
+    dragHandle.InputEnded:Connect(function(inp)
+        if inp == touchId then dragging = false; touchId = nil end
+    end)
+end
 
 --------------------------------------------------------
 -- SIDEBAR
