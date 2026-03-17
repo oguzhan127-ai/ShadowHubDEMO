@@ -157,8 +157,8 @@ title.Parent = topbar
 -- Helper: topbar button
 local function topBtn(xOff, sym, col)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, isMobile and 44 or 30, 0, isMobile and 44 or 30)
-    b.Position = UDim2.new(1, xOff, 0.5, isMobile and -22 or -15)
+    b.Size = UDim2.new(0, 30, 0, 30)
+    b.Position = UDim2.new(1, xOff, 0.5, -15)
     b.BackgroundColor3 = Color3.fromRGB(18, 12, 36)
     b.Text = sym
     b.Font = Enum.Font.GothamBold
@@ -174,8 +174,8 @@ local function topBtn(xOff, sym, col)
     return b
 end
 
-local closeBtn    = topBtn(isMobile and -50 or -36, "×", C.danger)
-local minimizeBtn = topBtn(isMobile and -100 or -72, "−", C.accent2)
+local closeBtn    = topBtn(-36, "×", C.danger)
+local minimizeBtn = topBtn(-72, "−", C.accent2)
 
 --------------------------------------------------------
 -- SIDEBAR
@@ -297,7 +297,6 @@ local function makeTab(name, icon)
     local function onClick()
         switchTab(name)
     end
-    btn.MouseButton1Click:Connect(onClick)
     btn.Activated:Connect(function()  onClick() end)
     return btn
 end
@@ -363,13 +362,12 @@ local function makeSwitch(parent, label, default, cb)
     knob.Position = default and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
     knob.BackgroundColor3 = default and Color3.fromRGB(220, 200, 255) or Color3.fromRGB(130, 110, 175)
     corner(knob, 9)
-    -- Hit area covers full row so mobile tapping anywhere on the row works
     local hit = Instance.new("TextButton", row)
     hit.Size = UDim2.new(1, 0, 1, 0)
     hit.BackgroundTransparency = 1
     hit.Text = ""
     hit.AutoButtonColor = false
-    hit.ZIndex = 5
+    hit.ZIndex = 2
     local state = default
     local function setState(v)
         state = v
@@ -380,7 +378,6 @@ local function makeSwitch(parent, label, default, cb)
         })
         if cb then task.spawn(cb, v) end
     end
-    hit.MouseButton1Click:Connect(function() setState(not state) end)
     hit.Activated:Connect(function() setState(not state) end)
     return { get = function() return state end, set = setState }
 end
@@ -1163,7 +1160,6 @@ do
         tw(knob,0.18,{Position = sbState and UDim2.new(1,-21,0.5,-9) or UDim2.new(0,3,0.5,-9), BackgroundColor3 = sbState and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,175)})
         if sbState then enableSB() else disableSB() end
     end
-    hit.MouseButton1Click:Connect(toggleSB)
     hit.Activated:Connect(function()  toggleSB() end)
 end
 
@@ -1233,7 +1229,6 @@ do
         tw(knob,0.18,{Position = ssState and UDim2.new(1,-21,0.5,-9) or UDim2.new(0,3,0.5,-9), BackgroundColor3 = ssState and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,175)})
         if ssState then enableSS() else disableSS() end
     end
-    hit.MouseButton1Click:Connect(toggleSS)
     hit.Activated:Connect(function()  toggleSS() end)
 end
 
@@ -1309,7 +1304,6 @@ do
         tw(knob,0.18,{Position = igState and UDim2.new(1,-21,0.5,-9) or UDim2.new(0,3,0.5,-9), BackgroundColor3 = igState and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,175)})
         if igState then enableIG() else disableIG() end
     end
-    hit.MouseButton1Click:Connect(toggleIG)
     hit.Activated:Connect(function()  toggleIG() end)
 end
 
@@ -1358,9 +1352,7 @@ do
         tw(manualBtn, 0.15, {TextColor3       = not v and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,180)})
     end
 
-    autoBtn.MouseButton1Click:Connect(function() setAuto(true)  end)
     autoBtn.Activated:Connect(function()  setAuto(true) end)
-    manualBtn.MouseButton1Click:Connect(function() setAuto(false) end)
     manualBtn.Activated:Connect(function()  setAuto(false) end)
 end
 
@@ -1765,7 +1757,5 @@ local function doClose()
     end)
 end
 
-minimizeBtn.MouseButton1Click:Connect(doMinimize)
-minimizeBtn.Activated:Connect(function()  doMinimize() end)
-closeBtn.MouseButton1Click:Connect(doClose)
-closeBtn.Activated:Connect(function()  doClose() end)
+minimizeBtn.Activated:Connect(doMinimize)
+closeBtn.Activated:Connect(doClose)
