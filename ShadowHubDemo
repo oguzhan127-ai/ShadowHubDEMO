@@ -218,9 +218,11 @@ local function makeSection(name)
     sf.Position = UDim2.new(0, 5, 0, 4)
     sf.BackgroundTransparency = 1
     sf.CanvasSize = UDim2.new(0, 0, 0, 0)
-    sf.ScrollBarThickness = 3
+    sf.ScrollBarThickness = isMobile and 0 or 3
     sf.ScrollBarImageColor3 = C.accent
     sf.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
+    sf.ScrollingEnabled = true
+    sf.ScrollingDirection = Enum.ScrollingDirection.Y
     sf.Visible = false
     sf.Parent = content
     local lay = Instance.new("UIListLayout", sf)
@@ -297,7 +299,6 @@ local function makeTab(name, icon)
         switchTab(name)
     end
     btn.MouseButton1Click:Connect(onClick)
-    btn.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then onClick() end end)
     return btn
 end
 
@@ -379,11 +380,6 @@ local function makeSwitch(parent, label, default, cb)
         if cb then task.spawn(cb, v) end
     end
     hit.MouseButton1Click:Connect(function() setState(not state) end)
-    hit.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.Touch then
-            setState(not state)
-        end
-    end)
     return { get = function() return state end, set = setState }
 end
 
@@ -1166,7 +1162,6 @@ do
         if sbState then enableSB() else disableSB() end
     end
     hit.MouseButton1Click:Connect(toggleSB)
-    hit.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then toggleSB() end end)
 end
 
 -- Steal Speed row with inline value box
@@ -1236,7 +1231,6 @@ do
         if ssState then enableSS() else disableSS() end
     end
     hit.MouseButton1Click:Connect(toggleSS)
-    hit.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then toggleSS() end end)
 end
 
 makeLabel(moveSection, "Steal Speed activates while carrying a brainrot.")
@@ -1312,7 +1306,6 @@ do
         if igState then enableIG() else disableIG() end
     end
     hit.MouseButton1Click:Connect(toggleIG)
-    hit.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then toggleIG() end end)
 end
 
 -- Auto / Manual pill
@@ -1361,9 +1354,7 @@ do
     end
 
     autoBtn.MouseButton1Click:Connect(function() setAuto(true) end)
-    autoBtn.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then setAuto(true) end end)
     manualBtn.MouseButton1Click:Connect(function() setAuto(false) end)
-    manualBtn.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then setAuto(false) end end)
 end
 
 makeLabel(moveSection, "Manual: press E yourself. Auto: fires automatically.")
@@ -1684,7 +1675,7 @@ leftHit.MouseButton1Click:Connect(function()
         end)
     end
 end)
-leftHit.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then leftHit.MouseButton1Click:Fire() end end)
+
 
 -- Auto Play 2 (Right) — doc6 exact flow
 rightHit.MouseButton1Click:Connect(function()
@@ -1718,7 +1709,7 @@ rightHit.MouseButton1Click:Connect(function()
         end)
     end
 end)
-rightHit.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then rightHit.MouseButton1Click:Fire() end end)
+
 
 -- Autoplay toggle shows/hides floating buttons
 makeSwitch(duelsSection, "Autoplay", false, function(on)
@@ -1768,6 +1759,4 @@ local function doClose()
 end
 
 minimizeBtn.MouseButton1Click:Connect(doMinimize)
-minimizeBtn.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then doMinimize() end end)
 closeBtn.MouseButton1Click:Connect(doClose)
-closeBtn.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then doClose() end end)
