@@ -86,7 +86,7 @@ main.Position = UDim2.new(0.5, -FW/2, 0.5, -FH/2)
 main.BackgroundColor3 = C.panel
 main.Active = true
 main.Draggable = not isMobile
-main.ClipsDescendants = true
+main.ClipsDescendants = false
 main.Parent = sg
 corner(main, 14)
 stroke(main, C.stroke, 1.5, 0.2)
@@ -114,15 +114,20 @@ if isMobile then
     end)
 end
 
--- Pop-in animation
-main.Size = UDim2.new(0, 0, 0, 0)
-main.Position = UDim2.new(0.5, 0, 0.5, 0)
-task.delay(isMobile and 0.5 or 0.05, function()
-    TweenService:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, FW, 0, FH),
-        Position = UDim2.new(0.5, -FW/2, 0.5, -FH/2),
-    }):Play()
-end)
+-- Pop-in animation (PC only — mobile shows immediately)
+if isMobile then
+    main.Size     = UDim2.new(0, FW, 0, FH)
+    main.Position = UDim2.new(0.5, -FW/2, 0.5, -FH/2)
+else
+    main.Size = UDim2.new(0, 0, 0, 0)
+    main.Position = UDim2.new(0.5, 0, 0.5, 0)
+    task.delay(0.05, function()
+        TweenService:Create(main, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, FW, 0, FH),
+            Position = UDim2.new(0.5, -FW/2, 0.5, -FH/2),
+        }):Play()
+    end)
+end
 
 --------------------------------------------------------
 -- TOP BAR
@@ -463,7 +468,7 @@ local moveSection = makeSection("Movement")
 makeTab("Home",     "⌂")
 makeTab("Movement", "⚡")
 
-task.delay(0.5, function() switchTab("Home") end)
+switchTab("Home")
 
 --------------------------------------------------------
 -- HOME CONTENT
