@@ -84,28 +84,27 @@ main.Parent = sg
 corner(main, 14)
 stroke(main, C.stroke, 1.5, 0.2)
 
--- Mobile drag — dedicated drag handle behind buttons
+-- Mobile drag — topbar drag handle
 if isMobile then
+    local dragging, dragStart, frameStart, touchId = false, nil, nil, nil
+
     local dragHandle = Instance.new("Frame")
-    dragHandle.Size = UDim2.new(1, -110, 1, 0) -- leave room for close/minimize
-    dragHandle.Position = UDim2.new(0, 0, 0, 0)
+    dragHandle.Size = UDim2.new(1, -100, 1, 0)
     dragHandle.BackgroundTransparency = 1
     dragHandle.ZIndex = 1
     dragHandle.Parent = topbar
-
-    local dragging, dragStart, frameStart, touchId = false, nil, nil, nil
 
     dragHandle.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.Touch then
             dragging = true; touchId = i
             dragStart = Vector2.new(i.Position.X, i.Position.Y)
-            frameStart = main.Position
+            frameStart = Vector2.new(main.Position.X.Offset, main.Position.Y.Offset)
         end
     end)
     UserInputService.InputChanged:Connect(function(i)
         if not dragging or i ~= touchId then return end
         local d = Vector2.new(i.Position.X, i.Position.Y) - dragStart
-        main.Position = UDim2.new(0, frameStart.X.Offset + d.X, 0, frameStart.Y.Offset + d.Y)
+        main.Position = UDim2.new(0, frameStart.X + d.X, 0, frameStart.Y + d.Y)
     end)
     UserInputService.InputEnded:Connect(function(i)
         if i == touchId then dragging = false; touchId = nil end
@@ -298,7 +297,7 @@ local function makeTab(name, icon)
         switchTab(name)
     end
     btn.MouseButton1Click:Connect(onClick)
-    btn.TouchTap:Connect(onClick)
+    btn.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then onClick() end end)
     return btn
 end
 
@@ -380,7 +379,11 @@ local function makeSwitch(parent, label, default, cb)
         if cb then task.spawn(cb, v) end
     end
     hit.MouseButton1Click:Connect(function() setState(not state) end)
-    hit.TouchTap:Connect(function() setState(not state) end)
+    hit.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.Touch then
+            setState(not state)
+        end
+    end)
     return { get = function() return state end, set = setState }
 end
 
@@ -1163,7 +1166,7 @@ do
         if sbState then enableSB() else disableSB() end
     end
     hit.MouseButton1Click:Connect(toggleSB)
-    hit.TouchTap:Connect(toggleSB)
+    hit.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then toggleSB() end end)
 end
 
 -- Steal Speed row with inline value box
@@ -1233,7 +1236,7 @@ do
         if ssState then enableSS() else disableSS() end
     end
     hit.MouseButton1Click:Connect(toggleSS)
-    hit.TouchTap:Connect(toggleSS)
+    hit.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then toggleSS() end end)
 end
 
 makeLabel(moveSection, "Steal Speed activates while carrying a brainrot.")
@@ -1309,7 +1312,7 @@ do
         if igState then enableIG() else disableIG() end
     end
     hit.MouseButton1Click:Connect(toggleIG)
-    hit.TouchTap:Connect(toggleIG)
+    hit.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then toggleIG() end end)
 end
 
 -- Auto / Manual pill
@@ -1358,9 +1361,9 @@ do
     end
 
     autoBtn.MouseButton1Click:Connect(function() setAuto(true) end)
-    autoBtn.TouchTap:Connect(function() setAuto(true) end)
+    autoBtn.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then setAuto(true) end end)
     manualBtn.MouseButton1Click:Connect(function() setAuto(false) end)
-    manualBtn.TouchTap:Connect(function() setAuto(false) end)
+    manualBtn.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then setAuto(false) end end)
 end
 
 makeLabel(moveSection, "Manual: press E yourself. Auto: fires automatically.")
@@ -1681,7 +1684,7 @@ leftHit.MouseButton1Click:Connect(function()
         end)
     end
 end)
-leftHit.TouchTap:Connect(function() leftHit.MouseButton1Click:Fire() end)
+leftHit.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then leftHit.MouseButton1Click:Fire() end end)
 
 -- Auto Play 2 (Right) — doc6 exact flow
 rightHit.MouseButton1Click:Connect(function()
@@ -1715,7 +1718,7 @@ rightHit.MouseButton1Click:Connect(function()
         end)
     end
 end)
-rightHit.TouchTap:Connect(function() rightHit.MouseButton1Click:Fire() end)
+rightHit.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then rightHit.MouseButton1Click:Fire() end end)
 
 -- Autoplay toggle shows/hides floating buttons
 makeSwitch(duelsSection, "Autoplay", false, function(on)
@@ -1765,6 +1768,6 @@ local function doClose()
 end
 
 minimizeBtn.MouseButton1Click:Connect(doMinimize)
-minimizeBtn.TouchTap:Connect(doMinimize)
+minimizeBtn.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then doMinimize() end end)
 closeBtn.MouseButton1Click:Connect(doClose)
-closeBtn.TouchTap:Connect(doClose)
+closeBtn.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch then doClose() end end)
