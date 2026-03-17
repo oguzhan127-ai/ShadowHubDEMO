@@ -297,7 +297,8 @@ local function makeTab(name, icon)
     local function onClick()
         switchTab(name)
     end
-    btn.Activated:Connect(function()  onClick() end)
+    btn.MouseButton1Click:Connect(onClick)
+    btn.TouchTap:Connect(onClick)
     return btn
 end
 
@@ -378,7 +379,8 @@ local function makeSwitch(parent, label, default, cb)
         })
         if cb then task.spawn(cb, v) end
     end
-    hit.Activated:Connect(function() setState(not state) end)
+    hit.MouseButton1Click:Connect(function() setState(not state) end)
+    hit.TouchTap:Connect(function() setState(not state) end)
     return { get = function() return state end, set = setState }
 end
 
@@ -1160,7 +1162,8 @@ do
         tw(knob,0.18,{Position = sbState and UDim2.new(1,-21,0.5,-9) or UDim2.new(0,3,0.5,-9), BackgroundColor3 = sbState and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,175)})
         if sbState then enableSB() else disableSB() end
     end
-    hit.Activated:Connect(function()  toggleSB() end)
+    hit.MouseButton1Click:Connect(toggleSB)
+    hit.TouchTap:Connect(toggleSB)
 end
 
 -- Steal Speed row with inline value box
@@ -1229,7 +1232,8 @@ do
         tw(knob,0.18,{Position = ssState and UDim2.new(1,-21,0.5,-9) or UDim2.new(0,3,0.5,-9), BackgroundColor3 = ssState and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,175)})
         if ssState then enableSS() else disableSS() end
     end
-    hit.Activated:Connect(function()  toggleSS() end)
+    hit.MouseButton1Click:Connect(toggleSS)
+    hit.TouchTap:Connect(toggleSS)
 end
 
 makeLabel(moveSection, "Steal Speed activates while carrying a brainrot.")
@@ -1304,7 +1308,8 @@ do
         tw(knob,0.18,{Position = igState and UDim2.new(1,-21,0.5,-9) or UDim2.new(0,3,0.5,-9), BackgroundColor3 = igState and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,175)})
         if igState then enableIG() else disableIG() end
     end
-    hit.Activated:Connect(function()  toggleIG() end)
+    hit.MouseButton1Click:Connect(toggleIG)
+    hit.TouchTap:Connect(toggleIG)
 end
 
 -- Auto / Manual pill
@@ -1352,8 +1357,10 @@ do
         tw(manualBtn, 0.15, {TextColor3       = not v and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,180)})
     end
 
-    autoBtn.Activated:Connect(function()  setAuto(true) end)
-    manualBtn.Activated:Connect(function()  setAuto(false) end)
+    autoBtn.MouseButton1Click:Connect(function() setAuto(true) end)
+    autoBtn.TouchTap:Connect(function() setAuto(true) end)
+    manualBtn.MouseButton1Click:Connect(function() setAuto(false) end)
+    manualBtn.TouchTap:Connect(function() setAuto(false) end)
 end
 
 makeLabel(moveSection, "Manual: press E yourself. Auto: fires automatically.")
@@ -1674,7 +1681,7 @@ leftHit.MouseButton1Click:Connect(function()
         end)
     end
 end)
-leftHit.Activated:Connect(function()  leftHit.MouseButton1Click:Fire() end)
+leftHit.TouchTap:Connect(function() leftHit.MouseButton1Click:Fire() end)
 
 -- Auto Play 2 (Right) — doc6 exact flow
 rightHit.MouseButton1Click:Connect(function()
@@ -1708,7 +1715,7 @@ rightHit.MouseButton1Click:Connect(function()
         end)
     end
 end)
-rightHit.Activated:Connect(function()  rightHit.MouseButton1Click:Fire() end)
+rightHit.TouchTap:Connect(function() rightHit.MouseButton1Click:Fire() end)
 
 -- Autoplay toggle shows/hides floating buttons
 makeSwitch(duelsSection, "Autoplay", false, function(on)
@@ -1757,5 +1764,7 @@ local function doClose()
     end)
 end
 
-minimizeBtn.Activated:Connect(doMinimize)
-closeBtn.Activated:Connect(doClose)
+minimizeBtn.MouseButton1Click:Connect(doMinimize)
+minimizeBtn.TouchTap:Connect(doMinimize)
+closeBtn.MouseButton1Click:Connect(doClose)
+closeBtn.TouchTap:Connect(doClose)
