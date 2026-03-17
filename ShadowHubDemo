@@ -88,10 +88,13 @@ stroke(main, C.stroke, 1.5, 0.2)
 if isMobile then
     local dragging, dragStart, frameStart, touchId = false, nil, nil, nil
 
-    local dragHandle = Instance.new("Frame")
+    local dragHandle = Instance.new("TextButton")
     dragHandle.Size = UDim2.new(1, -100, 1, 0)
     dragHandle.BackgroundTransparency = 1
+    dragHandle.Text = ""
+    dragHandle.AutoButtonColor = false
     dragHandle.ZIndex = 1
+    dragHandle.Active = true
     dragHandle.Parent = topbar
 
     dragHandle.InputBegan:Connect(function(i)
