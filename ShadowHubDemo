@@ -821,81 +821,80 @@ local function disableAP()
 end
 
 -- AUTO RETURN TO BRAINROT
--- When auto grab (auto mode) is ON and you get hit,
--- snap CFrame back to the nearest brainrot after a tiny delay
+-- Uses ProximityPromptService events to detect when you're holding a brainrot
+-- and get interrupted (hit) — then snaps back to it
 do
-    local lastHealth     = 100
-    local returning      = false
-    local returnCooldown = 0
+    local holdingPrompt   = nil  -- the prompt currently being held
+    local holdingPos      = nil  -- world position of that prompt
+    local stealCompleted  = false
+    local returnCooldown  = 0
 
-    local function findNearestBrainrotPos()
-        local r = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if not r then return nil end
-        local best, bestDist = nil, math.huge
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("ProximityPrompt") then
-                local p    = v.Parent
-                local pos2 = p:IsA("Attachment") and p.WorldPosition or p.Position
-                if pos2 then
-                    local dist = (pos2 - r.Position).Magnitude
-                    if dist < bestDist and dist > 2 then
-                        bestDist = dist
-                        best     = pos2
-                    end
-                end
-            end
-        end
-        return best
+    local function getPromptPos(prompt)
+        local p = prompt.Parent
+        if p:IsA("Attachment") then return p.WorldPosition end
+        if p:IsA("BasePart")   then return p.Position end
+        return nil
     end
 
-    RunService.Heartbeat:Connect(function()
-        if not igOn or not apAutoMode then return end
-        if returning then return end
-        if tick() - returnCooldown < 1.5 then return end
-
-        local char = player.Character
-        if not char then return end
-        local hum  = char:FindFirstChildOfClass("Humanoid")
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not hum or not root then return end
-
-        local hp = hum.Health
-
-        -- Detect hit: significant health drop
-        if lastHealth - hp > 8 and hp > 0 then
-            returning = true
-            returnCooldown = tick()
-
-            task.spawn(function()
-                -- Small delay so ragdoll/fling starts, then snap back
-                task.wait(0.15)
-
-                local target = findNearestBrainrotPos()
-                if target then
-                    local r2 = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                    if r2 then
-                        -- Snap CFrame to brainrot, offset slightly so we're next to it
-                        r2.CFrame = CFrame.new(target + Vector3.new(0, 2, 0))
-                        -- Zero velocity so we don't fly away
-                        r2.AssemblyLinearVelocity = Vector3.zero
-                        r2.AssemblyAngularVelocity = Vector3.zero
-                    end
-                end
-
-                task.wait(0.3)
-                returning = false
-            end)
+    local function isEnemyPrompt(prompt)
+        -- Make sure it's inside AnimalPodiums (not our own plot)
+        local cur = prompt.Parent
+        while cur and cur ~= workspace do
+            if cur.Name == "AnimalPodiums" then return true end
+            cur = cur.Parent
         end
+        return false
+    end
 
-        lastHealth = hp
+    -- When we start holding a brainrot prompt, record it
+    ProximityPromptSvc.PromptButtonHoldBegan:Connect(function(prompt, plr)
+        if plr ~= player then return end
+        if not igOn or not apAutoMode then return end
+        if not isEnemyPrompt(prompt) then return end
+        holdingPrompt  = prompt
+        holdingPos     = getPromptPos(prompt)
+        stealCompleted = false
+    end)
+
+    -- When steal completes successfully, mark it done
+    ProximityPromptSvc.PromptTriggered:Connect(function(prompt, plr)
+        if plr ~= player then return end
+        if prompt == holdingPrompt then
+            stealCompleted = true
+            holdingPrompt  = nil
+        end
+    end)
+
+    -- When hold ends WITHOUT completing, we got hit — snap back
+    ProximityPromptSvc.PromptButtonHoldEnded:Connect(function(prompt, plr)
+        if plr ~= player then return end
+        if prompt ~= holdingPrompt then return end
+        if stealCompleted then return end  -- steal finished fine
+        if not igOn or not apAutoMode then return end
+        if tick() - returnCooldown < 1 then return end
+
+        local target = holdingPos
+        holdingPrompt = nil
+
+        if not target then return end
+        returnCooldown = tick()
+
+        task.spawn(function()
+            task.wait(0.1)
+            local r = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if not r then return end
+            -- Snap back to the brainrot position
+            r.CFrame = CFrame.new(target + Vector3.new(0, 3, 0))
+            r.AssemblyLinearVelocity  = Vector3.zero
+            r.AssemblyAngularVelocity = Vector3.zero
+        end)
     end)
 
     -- Reset on respawn
-    player.CharacterAdded:Connect(function(char)
-        task.wait(1)
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then lastHealth = hum.Health end
-        returning = false
+    player.CharacterAdded:Connect(function()
+        holdingPrompt  = nil
+        holdingPos     = nil
+        stealCompleted = false
     end)
 end
 
