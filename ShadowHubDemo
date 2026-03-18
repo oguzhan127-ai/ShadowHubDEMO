@@ -1234,6 +1234,8 @@ local ijSwitch = makeSwitch(moveSection, "Infinite Jump", _cfgGet("ijOn", false)
     if on then enableIJ() else disableIJ() end
 end)
 toggleSetters.ijOn = function(v) ijSwitch.set(v, true) end
+-- If saved as ON, actually enable it (makeSwitch default doesn't fire the callback)
+if _cfgGet("ijOn", false) then task.defer(function() enableIJ() end) end
 
 makeInput(moveSection, "Jump Power", IJ_POWER, 1, 500, function(v)
     IJ_POWER = v
@@ -1243,6 +1245,8 @@ local arSwitch = makeSwitch(moveSection, "Anti Ragdoll", _cfgGet("arOn", false),
     if on then enableAR() else disableAR() end
 end)
 toggleSetters.arOn = function(v) arSwitch.set(v, true) end
+-- If saved as ON, actually enable it
+if _cfgGet("arOn", false) then task.defer(function() enableAR() end) end
 
 makeLabel(moveSection, "Blocks ragdoll, fling, and joint breaks.")
 
@@ -1545,6 +1549,7 @@ do
             arOn            = arOn,
             sbOn            = sbOn,
             ssOn            = ssOn,
+            autoplayOn      = duelSg and duelSg.Enabled or false,
         }
     end
 
@@ -1987,7 +1992,7 @@ end)
 
 
 -- Autoplay toggle shows/hides floating buttons
-makeSwitch(duelsSection, "Autoplay", false, function(on)
+local autoplaySwitch = makeSwitch(duelsSection, "Autoplay", _cfgGet("autoplayOn", false), function(on)
     duelSg.Enabled = on
     if not on then
         auto1 = false; setLeftOn(false)
@@ -1997,6 +2002,13 @@ makeSwitch(duelsSection, "Autoplay", false, function(on)
 end)
 
 makeLabel(duelsSection, "Auto Left / Right buttons appear at top of screen.")
+-- Restore autoplay from config
+if _cfgGet("autoplayOn", false) then
+    task.defer(function()
+        duelSg.Enabled = true
+        autoplaySwitch.set(true, true)
+    end)
+end
 
 -- MINIMIZE / CLOSE
 --------------------------------------------------------
