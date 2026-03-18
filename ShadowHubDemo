@@ -41,18 +41,18 @@ local SIDE_W = isMobile and 100 or 130
 
 -- Colors
 local C = {
-    bg      = Color3.fromRGB(7, 6, 16),
-    panel   = Color3.fromRGB(12, 10, 24),
-    sidebar = Color3.fromRGB(10, 8, 20),
-    accent  = Color3.fromRGB(110, 50, 255),
-    accent2 = Color3.fromRGB(60, 180, 255),
-    text    = Color3.fromRGB(225, 215, 255),
-    sub     = Color3.fromRGB(150, 130, 200),
+    bg      = Color3.fromRGB(5, 4, 14),
+    panel   = Color3.fromRGB(8, 6, 18),
+    sidebar = Color3.fromRGB(7, 5, 16),
+    accent  = Color3.fromRGB(120, 55, 255),
+    accent2 = Color3.fromRGB(80, 200, 255),
+    text    = Color3.fromRGB(230, 220, 255),
+    sub     = Color3.fromRGB(140, 120, 195),
     danger  = Color3.fromRGB(220, 50, 100),
-    swOff   = Color3.fromRGB(40, 30, 70),
-    swOn    = Color3.fromRGB(110, 50, 255),
-    stroke  = Color3.fromRGB(90, 55, 180),
-    row     = Color3.fromRGB(11, 8, 22),
+    swOff   = Color3.fromRGB(35, 25, 65),
+    swOn    = Color3.fromRGB(120, 55, 255),
+    stroke  = Color3.fromRGB(100, 55, 200),
+    row     = Color3.fromRGB(10, 7, 22),
 }
 
 local function tw(obj, t, props)
@@ -104,6 +104,46 @@ main.ClipsDescendants = false
 main.Parent = sg
 corner(main, 14)
 stroke(main, C.stroke, 1.5, 0.2)
+
+-- FALLING DOTS ANIMATION
+do
+    local DOT_COUNT = 18
+    local function makeDot()
+        local size = math.random(2, 4)
+        local dot = Instance.new("Frame")
+        dot.Size             = UDim2.new(0, size, 0, size)
+        dot.BackgroundColor3 = math.random() > 0.5
+            and Color3.fromRGB(130, 60, 255)
+            or  Color3.fromRGB(190, 150, 255)
+        dot.BackgroundTransparency = math.random(40, 75) / 100
+        dot.BorderSizePixel  = 0
+        dot.ZIndex           = 0
+        dot.Position         = UDim2.new(math.random(2, 98)/100, 0, -0.05, 0)
+        Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+        dot.Parent = main
+        return dot
+    end
+
+    local function animateDot(dot)
+        if not dot or not dot.Parent then return end
+        local startX = math.random(2, 98) / 100
+        local dur    = math.random(30, 70) / 10
+        dot.Position = UDim2.new(startX, 0, -0.05, 0)
+        dot.BackgroundTransparency = math.random(35, 65) / 100
+        TweenService:Create(dot,
+            TweenInfo.new(dur, Enum.EasingStyle.Linear),
+            {Position = UDim2.new(startX, 0, 1.05, 0), BackgroundTransparency = 0.95}
+        ):Play()
+        task.delay(dur, function() animateDot(dot) end)
+    end
+
+    for i = 1, DOT_COUNT do
+        local dot = makeDot()
+        dot.Position = UDim2.new(math.random(2, 98)/100, 0, math.random(0, 100)/100, 0)
+        task.delay(i * 0.25, function() animateDot(dot) end)
+    end
+end
+
 
 -- (mobile drag added after topbar is created below)
 
