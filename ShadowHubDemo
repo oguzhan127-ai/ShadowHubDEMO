@@ -710,7 +710,7 @@ end)
 --------------------------------------------------------
 local igOn     = false -- restored after UI builds
 local igThread = nil
-local IG_DELAY = _cfgGet("IG_DELAY", 0.5)
+local IG_DELAY = _cfgGet("IG_DELAY", 0.03)
 
 local apOn          = false
 local apAutoMode    = _cfgGet("apAutoMode", false)
@@ -1128,7 +1128,7 @@ end
 -- Single Heartbeat, MoveDirection-based, WalkSpeed<25 = carrying.
 -- sbOn = speed boost toggle, ssOn = steal speed toggle.
 --------------------------------------------------------
-local SPEED_VAL       = _cfgGet("SPEED_VAL", 43)
+local SPEED_VAL       = _cfgGet("SPEED_VAL", 60)
 local STEAL_SPEED_VAL = _cfgGet("STEAL_SPEED_VAL", 30)
 local MAX_SPEED       = 500
 
@@ -1529,7 +1529,86 @@ end
 makeLabel(moveSection, "Manual: press E yourself. Auto: fires automatically.")
 
 -- SAVE CONFIG
-makeHeader(moveSection, "Config")
+-- Custom header with inline RESET button
+do
+    local hRow = Instance.new("Frame")
+    hRow.Size = UDim2.new(1, 0, 0, 30)
+    hRow.BackgroundColor3 = Color3.fromRGB(16, 8, 38)
+    hRow.Parent = moveSection
+    corner(hRow, 8)
+    stroke(hRow, Color3.fromRGB(130, 55, 255), 1, 0.35)
+    local hGrad = Instance.new("UIGradient", hRow)
+    hGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(35, 12, 80)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(18, 8,  42)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(8,  4,  18)),
+    })
+    hGrad.Rotation = 90
+    local bar = Instance.new("Frame", hRow)
+    bar.Size = UDim2.new(0, 3, 0.6, 0)
+    bar.Position = UDim2.new(0, 6, 0.2, 0)
+    bar.BackgroundColor3 = Color3.fromRGB(160, 80, 255)
+    bar.BorderSizePixel = 0
+    corner(bar, 2)
+    local hLbl = Instance.new("TextLabel", hRow)
+    hLbl.Size = UDim2.new(1, -80, 1, 0)
+    hLbl.Position = UDim2.new(0, 18, 0, 0)
+    hLbl.BackgroundTransparency = 1
+    hLbl.Text = "CONFIG"
+    hLbl.Font = Enum.Font.GothamBlack
+    hLbl.TextSize = 11
+    hLbl.TextColor3 = Color3.fromRGB(210, 180, 255)
+    hLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- RESET button inline
+    local resetBtn = Instance.new("TextButton", hRow)
+    resetBtn.Size = UDim2.new(0, 58, 0, 20)
+    resetBtn.Position = UDim2.new(1, -64, 0.5, -10)
+    resetBtn.BackgroundColor3 = Color3.fromRGB(20, 12, 45)
+    resetBtn.Text = "RESET"
+    resetBtn.Font = Enum.Font.GothamBold
+    resetBtn.TextSize = 10
+    resetBtn.TextColor3 = Color3.fromRGB(180, 150, 255)
+    resetBtn.AutoButtonColor = false
+    resetBtn.ZIndex = 5
+    corner(resetBtn, 6)
+    stroke(resetBtn, Color3.fromRGB(100, 50, 200), 1, 0.4)
+    resetBtn.MouseEnter:Connect(function()
+        tw(resetBtn, 0.12, {BackgroundColor3 = Color3.fromRGB(30, 16, 65)})
+    end)
+    resetBtn.MouseLeave:Connect(function()
+        tw(resetBtn, 0.12, {BackgroundColor3 = Color3.fromRGB(20, 12, 45)})
+    end)
+
+    local function doReset()
+        -- Reset all numbers to defaults
+        IJ_POWER        = 42
+        IG_DELAY        = 0.03
+        SPEED_VAL       = 60
+        STEAL_SPEED_VAL = 30
+
+        -- Turn ON all movement toggles
+        if not ijOn then ijSwitch.set(true); enableIJ() else ijSwitch.set(true, true) end
+        if not arOn then arSwitch.set(true); enableAR() else arSwitch.set(true, true) end
+        if toggleSetters.sbOn then toggleSetters.sbOn(true) end
+        if toggleSetters.ssOn then toggleSetters.ssOn(true) end
+        if toggleSetters.igOn then toggleSetters.igOn(true) end
+
+        -- Flash button feedback
+        tw(resetBtn, 0.1, {BackgroundColor3 = Color3.fromRGB(35, 18, 75)})
+        local origText = resetBtn.Text
+        resetBtn.Text = "DONE"
+        resetBtn.TextColor3 = Color3.fromRGB(140, 255, 180)
+        task.delay(1.5, function()
+            tw(resetBtn, 0.2, {BackgroundColor3 = Color3.fromRGB(20, 12, 45)})
+            resetBtn.Text = origText
+            resetBtn.TextColor3 = Color3.fromRGB(180, 150, 255)
+        end)
+    end
+
+    resetBtn.MouseButton1Click:Connect(doReset)
+    resetBtn.TouchTap:Connect(doReset)
+end
 
 do
     local HttpService = game:GetService("HttpService")
