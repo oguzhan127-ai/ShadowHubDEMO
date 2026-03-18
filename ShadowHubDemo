@@ -798,13 +798,15 @@ local function enableIG()
         end
     end)
     -- Auto mode: use the exact same heartbeat grab as autoplay
-    if apAutoMode then instaGrab = true end
+    -- But only if autoplay isn't already running (avoid double grab)
+    if apAutoMode and not auto1 and not auto2 then instaGrab = true end
 end
 
 local function disableIG()
     igOn = false
     igThread = nil
-    instaGrab = false  -- stop auto grab
+    -- Only clear instaGrab if autoplay isn't currently using it
+    if not auto1 and not auto2 then instaGrab = false end
 end
 
 -- enableAP/disableAP now just control the HUD display vars
@@ -1499,7 +1501,8 @@ do
         tw(manualBtn, 0.15, {TextColor3       = not v and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,180)})
         -- If IG is already on, switch grab mode immediately
         if igOn then
-            instaGrab = v  -- true = auto grab, false = manual
+            -- Only activate instaGrab if autoplay isn't already using it
+            instaGrab = v and (not auto1 and not auto2) or (auto1 or auto2)
         end
     end
 
