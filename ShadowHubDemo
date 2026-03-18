@@ -41,18 +41,20 @@ local SIDE_W = isMobile and 100 or 130
 
 -- Colors
 local C = {
-    bg      = Color3.fromRGB(5, 4, 14),
-    panel   = Color3.fromRGB(8, 6, 18),
-    sidebar = Color3.fromRGB(7, 5, 16),
-    accent  = Color3.fromRGB(120, 55, 255),
-    accent2 = Color3.fromRGB(80, 200, 255),
-    text    = Color3.fromRGB(230, 220, 255),
-    sub     = Color3.fromRGB(140, 120, 195),
-    danger  = Color3.fromRGB(220, 50, 100),
-    swOff   = Color3.fromRGB(35, 25, 65),
-    swOn    = Color3.fromRGB(120, 55, 255),
-    stroke  = Color3.fromRGB(100, 55, 200),
-    row     = Color3.fromRGB(10, 7, 22),
+    bg      = Color3.fromRGB(4, 3, 12),
+    panel   = Color3.fromRGB(9, 6, 20),
+    sidebar = Color3.fromRGB(6, 4, 16),
+    accent  = Color3.fromRGB(138, 58, 255),
+    accent2 = Color3.fromRGB(80, 180, 255),
+    accentGlow = Color3.fromRGB(100, 30, 220),
+    text    = Color3.fromRGB(235, 225, 255),
+    sub     = Color3.fromRGB(155, 130, 210),
+    danger  = Color3.fromRGB(255, 55, 110),
+    swOff   = Color3.fromRGB(28, 18, 58),
+    swOn    = Color3.fromRGB(138, 58, 255),
+    stroke  = Color3.fromRGB(110, 55, 220),
+    row     = Color3.fromRGB(12, 8, 26),
+    rowHover= Color3.fromRGB(22, 14, 46),
 }
 
 local function tw(obj, t, props)
@@ -102,47 +104,69 @@ main.Active = not isMobile
 main.Draggable = not isMobile
 main.ClipsDescendants = false
 main.Parent = sg
-corner(main, 14)
-stroke(main, C.stroke, 1.5, 0.2)
+corner(main, 16)
+stroke(main, Color3.fromRGB(130, 60, 255), 1.5, 0.1)
+-- Main deep gradient
+local mainGrad = Instance.new("UIGradient", main)
+mainGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(18, 8, 42)),
+    ColorSequenceKeypoint.new(0.4, Color3.fromRGB(10, 6, 24)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(4,  3, 12)),
+})
+mainGrad.Rotation = 135
 
 -- FALLING DOTS ANIMATION
-do
-    local DOT_COUNT = 18
-    local function makeDot()
-        local size = math.random(2, 4)
-        local dot = Instance.new("Frame")
-        dot.Size             = UDim2.new(0, size, 0, size)
-        dot.BackgroundColor3 = math.random() > 0.5
-            and Color3.fromRGB(130, 60, 255)
-            or  Color3.fromRGB(190, 150, 255)
-        dot.BackgroundTransparency = math.random(40, 75) / 100
-        dot.BorderSizePixel  = 0
-        dot.ZIndex           = 0
-        dot.Position         = UDim2.new(math.random(2, 98)/100, 0, -0.05, 0)
-        Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
-        dot.Parent = main
-        return dot
-    end
+-- Dots float in a transparent overlay on top of everything
+task.spawn(function()
+    local DOT_COUNT = 22
+    local overlay = Instance.new("Frame")
+    overlay.Size = UDim2.new(1, 0, 1, 0)
+    overlay.BackgroundTransparency = 1
+    overlay.BorderSizePixel = 0
+    overlay.ZIndex = 3
+    overlay.ClipsDescendants = true
+    overlay.Active = false
+    overlay.Parent = main
 
-    local function animateDot(dot)
-        if not dot or not dot.Parent then return end
-        local startX = math.random(2, 98) / 100
-        local dur    = math.random(30, 70) / 10
-        dot.Position = UDim2.new(startX, 0, -0.05, 0)
-        dot.BackgroundTransparency = math.random(35, 65) / 100
-        TweenService:Create(dot,
-            TweenInfo.new(dur, Enum.EasingStyle.Linear),
-            {Position = UDim2.new(startX, 0, 1.05, 0), BackgroundTransparency = 0.95}
-        ):Play()
-        task.delay(dur, function() animateDot(dot) end)
-    end
+    local dotData = {}
 
     for i = 1, DOT_COUNT do
-        local dot = makeDot()
-        dot.Position = UDim2.new(math.random(2, 98)/100, 0, math.random(0, 100)/100, 0)
-        task.delay(i * 0.25, function() animateDot(dot) end)
+        local size = math.random(2, 5)
+        local dot = Instance.new("Frame")
+        dot.Size = UDim2.new(0, size, 0, size)
+        dot.BorderSizePixel = 0
+        dot.ZIndex = 4
+        dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+        dot.Parent = overlay
+
+        local speed = math.random(2, 5) / 1000  -- much slower
+        local x     = math.random(1, 99) / 100
+        local y     = math.random(0, 100) / 100
+        local alpha = math.random(20, 45) / 100
+        dot.Position = UDim2.new(x, 0, y, 0)
+        dot.BackgroundTransparency = alpha
+        dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+
+        dotData[i] = { dot = dot, x = x, y = y, speed = speed, alpha = alpha }
     end
-end
+
+    RunService.Heartbeat:Connect(function()
+        if not main or not main.Parent then return end
+        for _, d in ipairs(dotData) do
+            d.y = d.y + d.speed
+            if d.y > 1.05 then
+                -- Reset to top with new random x
+                d.y = -0.03
+                d.x = math.random(1, 99) / 100
+                d.speed = math.random(2, 5) / 1000
+                d.alpha = math.random(20, 45) / 100
+                d.dot.BackgroundTransparency = d.alpha
+            end
+            d.dot.Position = UDim2.new(d.x, 0, d.y, 0)
+        end
+    end)
+end)
 
 
 -- (mobile drag added after topbar is created below)
@@ -163,19 +187,37 @@ end
 -- TOP BAR
 --------------------------------------------------------
 local topbar = Instance.new("Frame")
-topbar.Size = UDim2.new(1, 0, 0, 44)
-topbar.BackgroundColor3 = C.bg
+topbar.Size = UDim2.new(1, 0, 0, 48)
+topbar.BackgroundColor3 = Color3.fromRGB(10, 6, 24)
 topbar.BorderSizePixel = 0
+topbar.ZIndex = 5
 topbar.Parent = main
 corner(topbar, 14)
+stroke(topbar, Color3.fromRGB(120, 55, 255), 1, 0.6)
 
--- Accent line under topbar
+-- Gradient on topbar
+local topGrad = Instance.new("UIGradient", topbar)
+topGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 8, 42)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 5, 18)),
+})
+topGrad.Rotation = 90
+
+-- Glowing accent line under topbar
 local aline = Instance.new("Frame")
 aline.Size = UDim2.new(1, 0, 0, 2)
 aline.Position = UDim2.new(0, 0, 1, -2)
 aline.BackgroundColor3 = C.accent
 aline.BorderSizePixel = 0
+aline.ZIndex = 6
 aline.Parent = topbar
+-- Glow effect on the line
+local alineGrad = Instance.new("UIGradient", aline)
+alineGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(80, 0, 200)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(180, 80, 255)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(80, 0, 200)),
+})
 
 -- Title
 local title = Instance.new("TextLabel")
@@ -183,10 +225,11 @@ title.Size = UDim2.new(1, -120, 1, 0)
 title.Position = UDim2.new(0, 14, 0, 0)
 title.BackgroundTransparency = 1
 title.Text = "Shadow HUB"
-title.Font = Enum.Font.GothamBold
-title.TextSize = isMobile and 16 or 20
-title.TextColor3 = C.text
+title.Font = Enum.Font.GothamBlack
+title.TextSize = isMobile and 17 or 22
+title.TextColor3 = Color3.fromRGB(220, 200, 255)
 title.TextXAlignment = Enum.TextXAlignment.Left
+title.ZIndex = 6
 title.Parent = topbar
 
 -- Helper: topbar button
@@ -255,13 +298,20 @@ end
 -- SIDEBAR
 --------------------------------------------------------
 local sidebar = Instance.new("Frame")
-sidebar.Size = UDim2.new(0, SIDE_W, 1, -44)
-sidebar.Position = UDim2.new(0, 0, 0, 44)
+sidebar.Size = UDim2.new(0, SIDE_W, 1, -48)
+sidebar.Position = UDim2.new(0, 0, 0, 48)
 sidebar.BackgroundColor3 = C.sidebar
 sidebar.BorderSizePixel = 0
 sidebar.Parent = main
-corner(sidebar, 10)
-stroke(sidebar, C.stroke, 1, 0.65)
+corner(sidebar, 12)
+stroke(sidebar, Color3.fromRGB(100, 45, 200), 1, 0.55)
+local sideGrad = Instance.new("UIGradient", sidebar)
+sideGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(16, 8, 38)),
+    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(8,  5, 20)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(4,  2, 12)),
+})
+sideGrad.Rotation = 160
 
 local sbLayout = Instance.new("UIListLayout", sidebar)
 sbLayout.Padding = UDim.new(0, 5)
@@ -274,8 +324,8 @@ Instance.new("UIPadding", sidebar).PaddingTop = UDim.new(0, 8)
 -- CONTENT AREA
 --------------------------------------------------------
 local content = Instance.new("Frame")
-content.Size = UDim2.new(1, -SIDE_W, 1, -44)
-content.Position = UDim2.new(0, SIDE_W, 0, 44)
+content.Size = UDim2.new(1, -SIDE_W, 1, -48)
+content.Position = UDim2.new(0, SIDE_W, 0, 48)
 content.BackgroundTransparency = 1
 content.Parent = main
 
@@ -318,17 +368,28 @@ local function switchTab(name)
     if activeTab then
         if sections[activeTab] then sections[activeTab].Visible = false end
         if tabBtns[activeTab] then
-            tw(tabBtns[activeTab].btn, 0.12, {BackgroundColor3 = C.sidebar})
+            tw(tabBtns[activeTab].btn, 0.15, {BackgroundColor3 = C.sidebar})
             tabBtns[activeTab].ind.BackgroundTransparency = 1
-            tw(tabBtns[activeTab].lbl, 0.12, {TextColor3 = C.sub})
+            tw(tabBtns[activeTab].lbl, 0.15, {TextColor3 = C.sub})
+            tw(tabBtns[activeTab].ico, 0.15, {TextColor3 = C.sub})
+            local g = tabBtns[activeTab].btn:FindFirstChildOfClass("UIGradient")
+            if g then g:Destroy() end
         end
     end
     activeTab = name
     if sections[name] then sections[name].Visible = true end
     if tabBtns[name] then
-        tw(tabBtns[name].btn, 0.12, {BackgroundColor3 = Color3.fromRGB(28, 16, 56)})
+        tw(tabBtns[name].btn, 0.15, {BackgroundColor3 = Color3.fromRGB(22, 10, 50)})
         tabBtns[name].ind.BackgroundTransparency = 0
-        tw(tabBtns[name].lbl, 0.12, {TextColor3 = Color3.fromRGB(210, 175, 255)})
+        tw(tabBtns[name].lbl, 0.15, {TextColor3 = Color3.fromRGB(220, 190, 255)})
+        tw(tabBtns[name].ico, 0.15, {TextColor3 = Color3.fromRGB(160, 80, 255)})
+        -- Add glow gradient to active tab
+        local g = Instance.new("UIGradient", tabBtns[name].btn)
+        g.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,   Color3.fromRGB(35, 14, 80)),
+            ColorSequenceKeypoint.new(1,   Color3.fromRGB(12, 6, 28)),
+        })
+        g.Rotation = 135
     end
 end
 
@@ -368,7 +429,7 @@ local function makeTab(name, icon)
     lbl.TextColor3 = C.sub
     lbl.TextXAlignment = Enum.TextXAlignment.Left
 
-    tabBtns[name] = {btn = btn, ind = ind, lbl = lbl}
+    tabBtns[name] = {btn = btn, ind = ind, lbl = lbl, ico = ico}
 
     local function onClick()
         switchTab(name)
@@ -382,25 +443,33 @@ end
 --------------------------------------------------------
 local function makeHeader(parent, text)
     local h = Instance.new("Frame")
-    h.Size = UDim2.new(1, 0, 0, 28)
-    h.BackgroundColor3 = Color3.fromRGB(16, 11, 32)
+    h.Size = UDim2.new(1, 0, 0, 30)
+    h.BackgroundColor3 = Color3.fromRGB(16, 8, 38)
     h.Parent = parent
     corner(h, 8)
-    stroke(h, Color3.fromRGB(90, 50, 180), 1, 0.55)
+    stroke(h, Color3.fromRGB(130, 55, 255), 1, 0.35)
+    local hGrad = Instance.new("UIGradient", h)
+    hGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(35, 12, 80)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(18, 8,  42)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(8,  4,  18)),
+    })
+    hGrad.Rotation = 90
+    -- Left accent bar with glow
     local bar = Instance.new("Frame", h)
-    bar.Size = UDim2.new(0, 3, 0.55, 0)
-    bar.Position = UDim2.new(0, 5, 0.225, 0)
-    bar.BackgroundColor3 = C.accent
+    bar.Size = UDim2.new(0, 3, 0.6, 0)
+    bar.Position = UDim2.new(0, 6, 0.2, 0)
+    bar.BackgroundColor3 = Color3.fromRGB(160, 80, 255)
     bar.BorderSizePixel = 0
     corner(bar, 2)
     local lbl = Instance.new("TextLabel", h)
-    lbl.Size = UDim2.new(1, -20, 1, 0)
-    lbl.Position = UDim2.new(0, 16, 0, 0)
+    lbl.Size = UDim2.new(1, -22, 1, 0)
+    lbl.Position = UDim2.new(0, 18, 0, 0)
     lbl.BackgroundTransparency = 1
-    lbl.Text = text
-    lbl.Font = Enum.Font.GothamBold
-    lbl.TextSize = 12
-    lbl.TextColor3 = Color3.fromRGB(190, 160, 255)
+    lbl.Text = text:upper()
+    lbl.Font = Enum.Font.GothamBlack
+    lbl.TextSize = 11
+    lbl.TextColor3 = Color3.fromRGB(210, 180, 255)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
 end
 
@@ -410,13 +479,20 @@ local function makeSwitch(parent, label, default, cb)
     row.BackgroundColor3 = C.row
     row.Parent = parent
     corner(row, 10)
-    local rs = stroke(row, Color3.fromRGB(75, 45, 150), 1, 0.6)
+    local rs = stroke(row, Color3.fromRGB(80, 40, 160), 1, 0.7)
+    local rowGrad = Instance.new("UIGradient", row)
+    rowGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(18, 10, 40)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(8,  5, 18)),
+    })
+    rowGrad.Rotation = 135
     row.MouseEnter:Connect(function()
-        tw(row, 0.12, {BackgroundColor3 = Color3.fromRGB(18, 12, 34)})
-        tw(rs, 0.12, {Transparency = 0.2})
+        tw(row, 0.15, {BackgroundColor3 = Color3.fromRGB(20, 12, 42)})
+        tw(rs,  0.15, {Transparency = 0.1, Color = Color3.fromRGB(130, 60, 255)})
     end)
     row.MouseLeave:Connect(function()
-        tw(row, 0.12, {BackgroundColor3 = C.row})
+        tw(row, 0.15, {BackgroundColor3 = C.row})
+        tw(rs,  0.15, {Transparency = 0.7, Color = Color3.fromRGB(80, 40, 160)})
         tw(rs, 0.12, {Transparency = 0.6})
     end)
     local lbl = Instance.new("TextLabel", row)
