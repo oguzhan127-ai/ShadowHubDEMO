@@ -1237,7 +1237,7 @@ toggleSetters.ijOn = function(v) ijSwitch.set(v, true) end
 -- If saved as ON, actually enable it (makeSwitch default doesn't fire the callback)
 if _cfgGet("ijOn", false) then task.defer(function() enableIJ() end) end
 
-makeInput(moveSection, "Jump Power", IJ_POWER, 1, 500, function(v)
+local ijPowerBox = makeInput(moveSection, "Jump Power", IJ_POWER, 1, 500, function(v)
     IJ_POWER = v
 end)
 
@@ -1251,6 +1251,9 @@ if _cfgGet("arOn", false) then task.defer(function() enableAR() end) end
 makeLabel(moveSection, "Blocks ragdoll, fling, and joint breaks.")
 
 makeHeader(moveSection, "Speed")
+
+-- Upvalue references so doReset can update them
+local sbVbox, ssVbox, igVbox
 
 -- Speed Boost row with inline value box
 do
@@ -1286,6 +1289,7 @@ do
     vbox.Position = UDim2.new(0,4,0,0)
     vbox.BackgroundTransparency = 1
     vbox.Text = tostring(SPEED_VAL)
+    sbVbox = vbox
     vbox.Font = Enum.Font.GothamBold
     vbox.TextSize = 13
     vbox.TextColor3 = Color3.fromRGB(210,185,255)
@@ -1359,6 +1363,7 @@ do
     vbox.Position = UDim2.new(0,4,0,0)
     vbox.BackgroundTransparency = 1
     vbox.Text = tostring(STEAL_SPEED_VAL)
+    ssVbox = vbox
     vbox.Font = Enum.Font.GothamBold
     vbox.TextSize = 13
     vbox.TextColor3 = Color3.fromRGB(210,185,255)
@@ -1436,6 +1441,7 @@ do
     vbox.Position = UDim2.new(0,4,0,0)
     vbox.BackgroundTransparency = 1
     vbox.Text = tostring(IG_DELAY)
+    igVbox = vbox
     vbox.Font = Enum.Font.GothamBold
     vbox.TextSize = 13
     vbox.TextColor3 = Color3.fromRGB(210,185,255)
@@ -1581,27 +1587,32 @@ do
     end)
 
     local function doReset()
-        -- Reset all numbers to defaults
+        -- Reset numbers to defaults
         IJ_POWER        = 42
         IG_DELAY        = 0.03
         SPEED_VAL       = 60
         STEAL_SPEED_VAL = 30
 
-        -- Turn ON all movement toggles
-        if not ijOn then ijSwitch.set(true); enableIJ() else ijSwitch.set(true, true) end
-        if not arOn then arSwitch.set(true); enableAR() else arSwitch.set(true, true) end
+        -- Update all input boxes
+        if ijPowerBox then ijPowerBox.Text = tostring(IJ_POWER) end
+        if sbVbox     then sbVbox.Text     = tostring(SPEED_VAL) end
+        if ssVbox     then ssVbox.Text     = tostring(STEAL_SPEED_VAL) end
+        if igVbox     then igVbox.Text     = tostring(IG_DELAY) end
+
+        -- Turn ON all movement toggles (visual + functional)
+        ijSwitch.set(true); enableIJ()
+        arSwitch.set(true); enableAR()
         if toggleSetters.sbOn then toggleSetters.sbOn(true) end
         if toggleSetters.ssOn then toggleSetters.ssOn(true) end
         if toggleSetters.igOn then toggleSetters.igOn(true) end
 
         -- Flash button feedback
         tw(resetBtn, 0.1, {BackgroundColor3 = Color3.fromRGB(35, 18, 75)})
-        local origText = resetBtn.Text
         resetBtn.Text = "DONE"
         resetBtn.TextColor3 = Color3.fromRGB(140, 255, 180)
         task.delay(1.5, function()
             tw(resetBtn, 0.2, {BackgroundColor3 = Color3.fromRGB(20, 12, 45)})
-            resetBtn.Text = origText
+            resetBtn.Text = "RESET"
             resetBtn.TextColor3 = Color3.fromRGB(180, 150, 255)
         end)
     end
