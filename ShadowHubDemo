@@ -485,55 +485,6 @@ makeHeader(homeSection, "Welcome")
 makeLabel(homeSection, "Shadow HUB  •  Steal a Brainrot")
 makeLabel(homeSection, "Toggle features in Movement tab.")
 
--- Save Config on Home tab for quick access
-makeHeader(homeSection, "Config")
-do
-    local saveRow2 = Instance.new("Frame")
-    saveRow2.Size = UDim2.new(1, 0, 0, 42)
-    saveRow2.BackgroundColor3 = C.row
-    saveRow2.Parent = homeSection
-    corner(saveRow2, 10)
-    stroke(saveRow2, Color3.fromRGB(75, 45, 150), 1, 0.6)
-    local saveBtn2 = Instance.new("TextButton")
-    saveBtn2.Size = UDim2.new(1, 0, 1, 0)
-    saveBtn2.BackgroundTransparency = 1
-    saveBtn2.Text = "💾  Save Config"
-    saveBtn2.Font = Enum.Font.GothamBold
-    saveBtn2.TextSize = 13
-    saveBtn2.TextColor3 = Color3.fromRGB(200, 175, 235)
-    saveBtn2.AutoButtonColor = false
-    saveBtn2.Parent = saveRow2
-    local function doSave2()
-        local ok = false
-        pcall(function()
-            if not writefile then return end
-            local data = {
-                IJ_POWER        = IJ_POWER,
-                IG_DELAY        = IG_DELAY,
-                SPEED_VAL       = SPEED_VAL,
-                STEAL_SPEED_VAL = STEAL_SPEED_VAL,
-                SPEED_IDA       = SPEED_IDA,
-                SPEED_VOLTA     = SPEED_VOLTA,
-                apAutoMode      = apAutoMode,
-            }
-            writefile("ShadowHUB_Config.json", game:GetService("HttpService"):JSONEncode(data))
-            ok = true
-        end)
-        -- Flash feedback
-        local col = ok and Color3.fromRGB(30, 80, 40) or Color3.fromRGB(80, 20, 20)
-        TweenService:Create(saveRow2, TweenInfo.new(0.1), {BackgroundColor3 = col}):Play()
-        saveBtn2.Text = ok and "✓  Saved!" or "✗  Failed"
-        saveBtn2.TextColor3 = ok and Color3.fromRGB(80, 255, 140) or Color3.fromRGB(255, 80, 80)
-        task.delay(2, function()
-            TweenService:Create(saveRow2, TweenInfo.new(0.2), {BackgroundColor3 = C.row}):Play()
-            saveBtn2.Text = "💾  Save Config"
-            saveBtn2.TextColor3 = Color3.fromRGB(200, 175, 235)
-        end)
-    end
-    saveBtn2.MouseButton1Click:Connect(doSave2)
-    saveBtn2.TouchTap:Connect(doSave2)
-end
-
 --------------------------------------------------------
 -- INFINITE JUMP
 -- Bypass: invisible massless Part welded to HRootPart
@@ -1426,6 +1377,13 @@ makeLabel(moveSection, "Manual: press E yourself. Auto: fires automatically.")
 makeHeader(moveSection, "Config")
 
 do
+    local HttpService = game:GetService("HttpService")
+    local CFG_FILE = "ShadowHUB_Config.json"
+
+    -- Collect references to all toggle setters so we can restore them on load
+    -- These are set during makeSwitch calls below; we store them here after creation
+    local switchRefs = {}  -- { key = setter }
+
     local saveRow = Instance.new("Frame")
     saveRow.Size = UDim2.new(1, 0, 0, 42)
     saveRow.BackgroundColor3 = C.row
@@ -1436,7 +1394,7 @@ do
     local saveBtn = Instance.new("TextButton")
     saveBtn.Size = UDim2.new(1, 0, 1, 0)
     saveBtn.BackgroundTransparency = 1
-    saveBtn.Text = "💾  Save Config"
+    saveBtn.Text = "Save Config"
     saveBtn.Font = Enum.Font.GothamBold
     saveBtn.TextSize = 13
     saveBtn.TextColor3 = Color3.fromRGB(200, 175, 235)
@@ -1466,10 +1424,9 @@ do
     local function showToast(ok)
         if toastActive then return end
         toastActive = true
-        toastLbl.Text = ok and "✓  Config Saved!" or "✗  Save Failed"
+        toastLbl.Text = ok and "Config Saved!" or "Save Failed"
         toastLbl.TextColor3 = ok and Color3.fromRGB(80, 255, 140) or Color3.fromRGB(255, 80, 80)
         toastStroke.Color = ok and Color3.fromRGB(60, 220, 120) or Color3.fromRGB(220, 60, 60)
-        -- Slide in
         toast.BackgroundTransparency = 0.1
         toastStroke.Transparency = 0.2
         TweenService:Create(toast, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
@@ -1489,25 +1446,25 @@ do
         pcall(function()
             if not writefile then return end
             local data = {
-                IJ_POWER       = IJ_POWER,
-                IG_DELAY       = IG_DELAY,
-                SPEED_VAL      = SPEED_VAL,
-                STEAL_SPEED_VAL= STEAL_SPEED_VAL,
-                SPEED_IDA      = SPEED_IDA,
-                SPEED_VOLTA    = SPEED_VOLTA,
-                apAutoMode     = apAutoMode,
-                ijOn           = ijOn,
-                igOn           = igOn,
-                arOn           = arOn,
-                sbOn           = sbOn,
-                ssOn           = ssOn,
+                -- Numbers
+                IJ_POWER        = IJ_POWER,
+                IG_DELAY        = IG_DELAY,
+                SPEED_VAL       = SPEED_VAL,
+                STEAL_SPEED_VAL = STEAL_SPEED_VAL,
+                SPEED_IDA       = SPEED_IDA,
+                SPEED_VOLTA     = SPEED_VOLTA,
+                -- Toggles
+                ijOn            = ijOn,
+                igOn            = igOn,
+                arOn            = arOn,
+                sbOn            = sbOn,
+                ssOn            = ssOn,
+                apAutoMode      = apAutoMode,
             }
-            local json = game:GetService("HttpService"):JSONEncode(data)
-            writefile("ShadowHUB_Config.json", json)
+            writefile(CFG_FILE, HttpService:JSONEncode(data))
             ok = true
         end)
         showToast(ok)
-        -- Flash the button
         TweenService:Create(saveRow, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(18, 12, 34)}):Play()
         task.delay(0.15, function()
             TweenService:Create(saveRow, TweenInfo.new(0.2), {BackgroundColor3 = C.row}):Play()
@@ -1517,19 +1474,26 @@ do
     saveBtn.MouseButton1Click:Connect(doSave)
     saveBtn.TouchTap:Connect(doSave)
 
-    -- Load config on start
-    task.spawn(function()
+    -- Auto-load on start — runs after all switches are created
+    task.delay(0.5, function()
         pcall(function()
-            if not readfile or not isfile or not isfile("ShadowHUB_Config.json") then return end
-            local data = game:GetService("HttpService"):JSONDecode(readfile("ShadowHUB_Config.json"))
+            if not readfile or not isfile or not isfile(CFG_FILE) then return end
+            local data = HttpService:JSONDecode(readfile(CFG_FILE))
             if not data then return end
+            -- Restore numbers
             if data.IJ_POWER        then IJ_POWER        = data.IJ_POWER        end
             if data.IG_DELAY        then IG_DELAY        = data.IG_DELAY        end
             if data.SPEED_VAL       then SPEED_VAL       = data.SPEED_VAL       end
             if data.STEAL_SPEED_VAL then STEAL_SPEED_VAL = data.STEAL_SPEED_VAL end
             if data.SPEED_IDA       then SPEED_IDA       = data.SPEED_IDA       end
             if data.SPEED_VOLTA     then SPEED_VOLTA     = data.SPEED_VOLTA     end
-            if data.apAutoMode      ~= nil then apAutoMode = data.apAutoMode    end
+            if data.apAutoMode ~= nil then apAutoMode    = data.apAutoMode      end
+            -- Restore toggles by calling their enable functions
+            if data.ijOn and not ijOn then enableIJ() end
+            if data.igOn and not igOn then enableIG() end
+            if data.arOn and not arOn then enableAR() end
+            if data.sbOn and not sbOn then enableSB() end
+            if data.ssOn and not ssOn then enableSS() end
         end)
     end)
 end
