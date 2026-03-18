@@ -718,6 +718,7 @@ local apConn        = nil
 local apHBConn      = nil
 local apNearestName = "—"
 local apNearestDist = 0
+local instaGrab     = false  -- shared with autoplay heartbeat loop
 local promptCache   = {}
 local cacheThread   = nil
 
@@ -779,7 +780,8 @@ local function isBrainrotPrompt(prompt)
     return false
 end
 
--- INSTANT GRAB — doc16 exact: keeps HoldDuration=0 so pressing E is instant
+-- INSTANT GRAB — Manual: HoldDuration=0 so E press is instant
+-- Auto: sets instaGrab=true which the autoplay heartbeat loop picks up
 local function enableIG()
     if igOn then return end
     igOn = true
@@ -795,90 +797,25 @@ local function enableIG()
             task.wait(IG_DELAY)
         end
     end)
-    if apAutoMode then enableAP() end
+    -- Auto mode: use the exact same heartbeat grab as autoplay
+    if apAutoMode then instaGrab = true end
 end
 
 local function disableIG()
     igOn = false
     igThread = nil
+    instaGrab = false  -- stop auto grab
 end
 
--- AUTO PRESS — doc16 exact: fires on PromptShown + PromptButtonHoldBegan + Heartbeat
--- AP grab cache — same system as autoplay InternalStealCache
-local APStealCache = {}
-
-local function apBuildCallbacks(prompt)
-    if APStealCache[prompt] then return end
-    local data = { hold = {}, trigger = {}, ready = true }
-    local ok1, conns1 = pcall(getconnections, prompt.PromptButtonHoldBegan)
-    if ok1 then
-        for _, c in pairs(conns1) do
-            if c.Function then table.insert(data.hold, c.Function) end
-        end
-    end
-    local ok2, conns2 = pcall(getconnections, prompt.Triggered)
-    if ok2 then
-        for _, c in pairs(conns2) do
-            if c.Function then table.insert(data.trigger, c.Function) end
-        end
-    end
-    APStealCache[prompt] = data
-end
-
-local function apRunSteal(prompt)
-    local data = APStealCache[prompt]
-    if not data or not data.ready then return end
-    data.ready = false
-    task.spawn(function()
-        for _, fn in pairs(data.hold) do task.spawn(fn) end
-        task.wait(0.15)
-        for _, fn in pairs(data.trigger) do task.spawn(fn) end
-        task.wait(0.05)
-        data.ready = true
-    end)
-end
-
+-- enableAP/disableAP now just control the HUD display vars
+-- The actual grab is handled by the autoplay InternalStealCache heartbeat via instaGrab flag
 local function enableAP()
-    if apOn then return end
     apOn = true
-
-    apHBConn = RunService.Heartbeat:Connect(function()
-        if not apOn then return end
-        local r = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if not r then return end
-
-        local closest, closestDist, closestName = nil, math.huge, "—"
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("ProximityPrompt") then
-                local p    = v.Parent
-                local pos2 = p:IsA("Attachment") and p.WorldPosition or p.Position
-                if pos2 then
-                    local dist = (pos2 - r.Position).Magnitude
-                    if dist < closestDist and dist <= 8 then
-                        closestDist = dist
-                        closest     = v
-                        closestName = p.Name
-                    end
-                end
-            end
-        end
-
-        apNearestDist = closestDist < math.huge and math.floor(closestDist) or 0
-        apNearestName = closestDist < math.huge and closestName or "—"
-
-        if closest then
-            apBuildCallbacks(closest)
-            apRunSteal(closest)
-        end
-    end)
 end
 
 local function disableAP()
     apOn = false
-    if apConn   then apConn:Disconnect();   apConn   = nil end
-    if apHBConn then apHBConn:Disconnect(); apHBConn = nil end
     apNearestName = "—"; apNearestDist = 0
-    APStealCache = {}
 end
 
 local hudFrame = Instance.new("Frame")
@@ -1560,6 +1497,10 @@ do
         tw(autoBtn,   0.15, {TextColor3       = v     and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,180)})
         tw(manualBtn, 0.15, {BackgroundColor3 = not v and C.accent or Color3.fromRGB(28,20,50)})
         tw(manualBtn, 0.15, {TextColor3       = not v and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,180)})
+        -- If IG is already on, switch grab mode immediately
+        if igOn then
+            instaGrab = v  -- true = auto grab, false = manual
+        end
     end
 
     autoBtn.MouseButton1Click:Connect(function() setAuto(true) end)
@@ -1798,7 +1739,6 @@ local SPEED_VOLTA = _cfgGet("SPEED_VOLTA", 29)
 
 local auto1      = false
 local auto2      = false
-local instaGrab  = false  -- doc6: set true at steal zone, false after
 local autoplayOn = false  -- tracks autoplay toggle for save config
 
 -- doc6 go() — sets AssemblyLinearVelocity every frame
