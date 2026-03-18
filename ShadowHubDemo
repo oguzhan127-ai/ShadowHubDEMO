@@ -820,6 +820,91 @@ local function disableAP()
     apNearestName = "—"; apNearestDist = 0
 end
 
+-- AUTO RETURN TO BRAINROT
+-- When auto grab (auto mode) is ON and you get hit/flung,
+-- smoothly rush back to nearest brainrot using velocity (no TP = no anticheat)
+do
+    local returning      = false
+    local lastHealth     = 100
+    local returnCooldown = 0
+
+    -- Find nearest brainrot position in workspace
+    local function findNearestBrainrotPos()
+        local r = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not r then return nil end
+        local best, bestDist = nil, math.huge
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("ProximityPrompt") then
+                local p    = v.Parent
+                local pos2 = p:IsA("Attachment") and p.WorldPosition or p.Position
+                if pos2 then
+                    local dist = (pos2 - r.Position).Magnitude
+                    if dist < bestDist and dist > 3 then
+                        bestDist = dist
+                        best     = pos2
+                    end
+                end
+            end
+        end
+        return best
+    end
+
+    RunService.Heartbeat:Connect(function()
+        if not igOn or not apAutoMode then return end
+        if returning then return end
+        if tick() - returnCooldown < 2 then return end
+
+        local char = player.Character
+        if not char then return end
+        local hum  = char:FindFirstChildOfClass("Humanoid")
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not hum or not root then return end
+
+        local hp = hum.Health
+
+        -- Detect hit: health dropped significantly
+        if lastHealth - hp > 8 and hp > 0 then
+            local target = findNearestBrainrotPos()
+            if target and (root.Position - target).Magnitude > 10 then
+                returning = true
+                returnCooldown = tick()
+
+                task.spawn(function()
+                    -- Smooth velocity rush — same as go() from autoplay
+                    -- Split into small steps so anticheat sees natural movement
+                    local speed = 58
+                    local steps = 0
+                    while igOn and apAutoMode and steps < 300 do
+                        local r2 = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                        if not r2 then break end
+                        local dist = (r2.Position - target).Magnitude
+                        if dist < 6 then break end
+                        local dir = (target - r2.Position).Unit
+                        r2.AssemblyLinearVelocity = Vector3.new(
+                            dir.X * speed,
+                            r2.AssemblyLinearVelocity.Y,
+                            dir.Z * speed
+                        )
+                        steps += 1
+                        task.wait()
+                    end
+                    returning = false
+                end)
+            end
+        end
+
+        lastHealth = hp
+    end)
+
+    -- Reset lastHealth on respawn
+    player.CharacterAdded:Connect(function(char)
+        task.wait(1)
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then lastHealth = hum.Health end
+        returning = false
+    end)
+end
+
 local hudFrame = Instance.new("Frame")
 hudFrame.Size             = UDim2.new(0, 270, 0, 72)
 hudFrame.Position         = UDim2.new(0.5, -135, 0, -80)
