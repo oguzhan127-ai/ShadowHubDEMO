@@ -1644,7 +1644,7 @@ do
             arOn            = arOn,
             sbOn            = sbOn,
             ssOn            = ssOn,
-            autoplayOn      = duelSg and duelSg.Enabled or false,
+            autoplayOn      = autoplayOn,
         }
     end
 
@@ -1762,9 +1762,10 @@ local B4 = Vector3.new(-470.93, -6.83, 113.38)
 local SPEED_IDA   = _cfgGet("SPEED_IDA", 56)
 local SPEED_VOLTA = _cfgGet("SPEED_VOLTA", 29)
 
-local auto1     = false
-local auto2     = false
-local instaGrab = false  -- doc6: set true at steal zone, false after
+local auto1      = false
+local auto2      = false
+local instaGrab  = false  -- doc6: set true at steal zone, false after
+local autoplayOn = false  -- tracks autoplay toggle for save config
 
 -- doc6 go() — sets AssemblyLinearVelocity every frame
 local function go(pos, speed, cond)
@@ -2088,6 +2089,7 @@ end)
 
 -- Autoplay toggle shows/hides floating buttons
 local autoplaySwitch = makeSwitch(duelsSection, "Autoplay", _cfgGet("autoplayOn", false), function(on)
+    autoplayOn = on
     duelSg.Enabled = on
     if not on then
         auto1 = false; setLeftOn(false)
@@ -2100,6 +2102,7 @@ makeLabel(duelsSection, "Auto Left / Right buttons appear at top of screen.")
 -- Restore autoplay from config
 if _cfgGet("autoplayOn", false) then
     task.defer(function()
+        autoplayOn = true
         duelSg.Enabled = true
         autoplaySwitch.set(true, true)
     end)
