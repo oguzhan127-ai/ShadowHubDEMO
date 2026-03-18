@@ -1109,19 +1109,24 @@ end
 
 -- MOVEMENT SECTION
 --------------------------------------------------------
+-- Shared setter table so save config can restore toggle visuals on load
+local toggleSetters = {}
+
 makeHeader(moveSection, "Movement")
 
-makeSwitch(moveSection, "Infinite Jump", false, function(on)
+local ijSwitch = makeSwitch(moveSection, "Infinite Jump", _cfgGet("ijOn", false), function(on)
     if on then enableIJ() else disableIJ() end
 end)
+toggleSetters.ijOn = function(v) ijSwitch.set(v, true) end
 
 makeInput(moveSection, "Jump Power", IJ_POWER, 1, 500, function(v)
     IJ_POWER = v
 end)
 
-makeSwitch(moveSection, "Anti Ragdoll", false, function(on)
+local arSwitch = makeSwitch(moveSection, "Anti Ragdoll", _cfgGet("arOn", false), function(on)
     if on then enableAR() else disableAR() end
 end)
+toggleSetters.arOn = function(v) arSwitch.set(v, true) end
 
 makeLabel(moveSection, "Blocks ragdoll, fling, and joint breaks.")
 
@@ -1190,13 +1195,16 @@ do
     hit.Text = ""
     hit.AutoButtonColor = false
     local sbState = false
-    local function toggleSB()
-        sbState = not sbState
+    local function setSB(v)
+        sbState = v
         tw(track,0.18,{BackgroundColor3 = sbState and C.swOn or C.swOff})
         tw(knob,0.18,{Position = sbState and UDim2.new(1,-21,0.5,-9) or UDim2.new(0,3,0.5,-9), BackgroundColor3 = sbState and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,175)})
         if sbState then enableSB() else disableSB() end
     end
+    local function toggleSB() setSB(not sbState) end
     hit.MouseButton1Click:Connect(toggleSB)
+    toggleSetters.sbOn = setSB
+    if _cfgGet("sbOn", false) then task.defer(function() setSB(true) end) end
 end
 
 -- Steal Speed row with inline value box
@@ -1259,13 +1267,16 @@ do
     hit.Text = ""
     hit.AutoButtonColor = false
     local ssState = false
-    local function toggleSS()
-        ssState = not ssState
+    local function setSS(v)
+        ssState = v
         tw(track,0.18,{BackgroundColor3 = ssState and C.swOn or C.swOff})
         tw(knob,0.18,{Position = ssState and UDim2.new(1,-21,0.5,-9) or UDim2.new(0,3,0.5,-9), BackgroundColor3 = ssState and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,175)})
         if ssState then enableSS() else disableSS() end
     end
+    local function toggleSS() setSS(not ssState) end
     hit.MouseButton1Click:Connect(toggleSS)
+    toggleSetters.ssOn = setSS
+    if _cfgGet("ssOn", false) then task.defer(function() setSS(true) end) end
 end
 
 makeLabel(moveSection, "Steal Speed activates while carrying a brainrot.")
@@ -1334,13 +1345,16 @@ do
     hit.Text = ""
     hit.AutoButtonColor = false
     local igState = false
-    local function toggleIG()
-        igState = not igState
+    local function setIG(v)
+        igState = v
         tw(track,0.18,{BackgroundColor3 = igState and C.swOn or C.swOff})
         tw(knob,0.18,{Position = igState and UDim2.new(1,-21,0.5,-9) or UDim2.new(0,3,0.5,-9), BackgroundColor3 = igState and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,175)})
         if igState then enableIG() else disableIG() end
     end
+    local function toggleIG() setIG(not igState) end
     hit.MouseButton1Click:Connect(toggleIG)
+    toggleSetters.igOn = setIG
+    if _cfgGet("igOn", false) then task.defer(function() setIG(true) end) end
 end
 
 -- Auto / Manual pill
@@ -1502,15 +1516,6 @@ do
 
     saveBtn.MouseButton1Click:Connect(doSave)
     saveBtn.TouchTap:Connect(doSave)
-
-    -- Restore toggles after UI is built — numbers already set at top of script
-    task.delay(0.1, function()
-        if _CFG.ijOn and not ijOn then enableIJ() end
-        if _CFG.igOn and not igOn then enableIG() end
-        if _CFG.arOn and not arOn then enableAR() end
-        if _CFG.sbOn and not sbOn then enableSB() end
-        if _CFG.ssOn and not ssOn then enableSS() end
-    end)
 end
 
 --------------------------------------------------------
