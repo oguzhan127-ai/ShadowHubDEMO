@@ -1587,26 +1587,31 @@ do
     end)
 
     local function doReset()
-        -- Reset numbers to defaults
+        -- 1. Reset numbers to defaults
         IJ_POWER        = 42
         IG_DELAY        = 0.03
         SPEED_VAL       = 60
         STEAL_SPEED_VAL = 30
 
-        -- Update all input boxes
+        -- 2. Update all input boxes visually
         if ijPowerBox then ijPowerBox.Text = tostring(IJ_POWER) end
         if sbVbox     then sbVbox.Text     = tostring(SPEED_VAL) end
         if ssVbox     then ssVbox.Text     = tostring(STEAL_SPEED_VAL) end
         if igVbox     then igVbox.Text     = tostring(IG_DELAY) end
 
-        -- Turn ON all movement toggles (visual + functional)
-        ijSwitch.set(true); enableIJ()
-        arSwitch.set(true); enableAR()
-        if toggleSetters.sbOn then toggleSetters.sbOn(true) end
-        if toggleSetters.ssOn then toggleSetters.ssOn(true) end
-        if toggleSetters.igOn then toggleSetters.igOn(true) end
+        -- 3. Force disable all first (clears the "already on" guards)
+        disableIJ(); disableAR(); disableSB(); disableSS(); disableIG()
 
-        -- Flash button feedback
+        -- 4. Re-enable everything fresh + update visuals
+        task.defer(function()
+            ijSwitch.set(true, true); enableIJ()
+            arSwitch.set(true, true); enableAR()
+            if toggleSetters.sbOn then toggleSetters.sbOn(true) end
+            if toggleSetters.ssOn then toggleSetters.ssOn(true) end
+            if toggleSetters.igOn then toggleSetters.igOn(true) end
+        end)
+
+        -- 5. Flash feedback
         tw(resetBtn, 0.1, {BackgroundColor3 = Color3.fromRGB(35, 18, 75)})
         resetBtn.Text = "DONE"
         resetBtn.TextColor3 = Color3.fromRGB(140, 255, 180)
