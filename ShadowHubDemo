@@ -10,6 +10,27 @@ local TweenService     = game:GetService("TweenService")
 local ProximityPromptSvc = game:GetService("ProximityPromptService")
 local player           = Players.LocalPlayer
 
+-- ============================================================
+-- LOAD CONFIG FIRST — before any variables so defaults get overridden
+-- ============================================================
+local _CFG = {}
+pcall(function()
+    local HttpService = game:GetService("HttpService")
+    local content = nil
+    if readfile then
+        pcall(function() content = readfile("ShadowHUB_Config.json") end)
+    end
+    if content and content ~= "" then
+        local ok, data = pcall(function() return HttpService:JSONDecode(content) end)
+        if ok and data then _CFG = data end
+    end
+end)
+local function _cfgGet(key, default)
+    if _CFG[key] ~= nil then return _CFG[key] end
+    return default
+end
+-- ============================================================
+
 -- Mobile detection
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
@@ -492,11 +513,11 @@ makeLabel(homeSection, "Toggle features in Movement tab.")
 -- Y-axis only, self-destructs after 0.1s
 -- 3-way detection: Space / HumanoidState / Jump prop
 --------------------------------------------------------
-local ijOn   = false
+local ijOn   = false -- restored after UI builds
 local ijConn = nil
 local ijPart = nil
 local ijLast = 0
-local IJ_POWER   = 42
+local IJ_POWER   = _cfgGet("IJ_POWER", 42)
 local IJ_COOL    = 0.2
 
 local function doJump()
@@ -571,12 +592,12 @@ end)
 -- Sets HoldDuration=0 + MaxActivationDistance=huge on all prompts
 -- Press E yourself once = instant grab, no hold wait
 --------------------------------------------------------
-local igOn     = false
+local igOn     = false -- restored after UI builds
 local igThread = nil
-local IG_DELAY = 0.5
+local IG_DELAY = _cfgGet("IG_DELAY", 0.5)
 
 local apOn          = false
-local apAutoMode    = false  -- false=Manual, true=Auto
+local apAutoMode    = _cfgGet("apAutoMode", false)
 local apConn        = nil
 local apHBConn      = nil
 local apNearestName = "—"
@@ -850,7 +871,7 @@ end)
 -- 5. RemoteEvent intercept: block Ragdoll remote from firing on client
 -- Respawns cleanly via CharacterAdded
 --------------------------------------------------------
-local arOn    = false
+local arOn    = false -- restored after UI builds
 local arConns = {}
 
 local function enableAR()
@@ -991,12 +1012,12 @@ end
 -- Single Heartbeat, MoveDirection-based, WalkSpeed<25 = carrying.
 -- sbOn = speed boost toggle, ssOn = steal speed toggle.
 --------------------------------------------------------
-local SPEED_VAL       = 43
-local STEAL_SPEED_VAL = 30
+local SPEED_VAL       = _cfgGet("SPEED_VAL", 43)
+local STEAL_SPEED_VAL = _cfgGet("STEAL_SPEED_VAL", 30)
 local MAX_SPEED       = 500
 
-local sbOn = false
-local ssOn = false
+local sbOn = false -- restored after UI builds
+local ssOn = false -- restored after UI builds
 
 local speedConn    = nil
 local speedCharConn = nil
@@ -1410,26 +1431,6 @@ do
         return ok
     end
 
-    local function loadConfig()
-        local data = nil
-        pcall(function()
-            -- Some executors have isfile, some don't — try both
-            local content = nil
-            if readfile then
-                if isfile then
-                    if isfile(CFG) then content = readfile(CFG) end
-                else
-                    -- Try reading anyway, pcall catches if missing
-                    pcall(function() content = readfile(CFG) end)
-                end
-            end
-            if content and content ~= "" then
-                data = HttpService:JSONDecode(content)
-            end
-        end)
-        return data
-    end
-
     -- Row
     local saveRow = Instance.new("Frame")
     saveRow.Size = UDim2.new(1, 0, 0, 42)
@@ -1502,24 +1503,13 @@ do
     saveBtn.MouseButton1Click:Connect(doSave)
     saveBtn.TouchTap:Connect(doSave)
 
-    -- Auto-load saved config on script start
-    task.delay(0.2, function()
-        local data = loadConfig()
-        if not data then return end
-        -- Restore numbers
-        if data.IJ_POWER        then IJ_POWER        = data.IJ_POWER        end
-        if data.IG_DELAY        then IG_DELAY        = data.IG_DELAY        end
-        if data.SPEED_VAL       then SPEED_VAL       = data.SPEED_VAL       end
-        if data.STEAL_SPEED_VAL then STEAL_SPEED_VAL = data.STEAL_SPEED_VAL end
-        if data.SPEED_IDA       then SPEED_IDA       = data.SPEED_IDA       end
-        if data.SPEED_VOLTA     then SPEED_VOLTA     = data.SPEED_VOLTA     end
-        if data.apAutoMode ~= nil then apAutoMode    = data.apAutoMode      end
-        -- Restore toggles
-        if data.ijOn then enableIJ() end
-        if data.igOn then enableIG() end
-        if data.arOn then enableAR() end
-        if data.sbOn then enableSB() end
-        if data.ssOn then enableSS() end
+    -- Restore toggles after UI is built — numbers already set at top of script
+    task.delay(0.1, function()
+        if _CFG.ijOn and not ijOn then enableIJ() end
+        if _CFG.igOn and not igOn then enableIG() end
+        if _CFG.arOn and not arOn then enableAR() end
+        if _CFG.sbOn and not sbOn then enableSB() end
+        if _CFG.ssOn and not ssOn then enableSS() end
     end)
 end
 
@@ -1548,8 +1538,8 @@ local B3 = Vector3.new(-474.02, -7.30,  25.55)
 local B4 = Vector3.new(-470.93, -6.83, 113.38)
 
 -- Speeds (doc6 exact)
-local SPEED_IDA   = 56
-local SPEED_VOLTA = 29
+local SPEED_IDA   = _cfgGet("SPEED_IDA", 56)
+local SPEED_VOLTA = _cfgGet("SPEED_VOLTA", 29)
 
 local auto1     = false
 local auto2     = false
