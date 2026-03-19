@@ -996,7 +996,7 @@ hudFrame.Position         = UDim2.new(0.5, -135, 0, -80)
 hudFrame.BackgroundColor3 = Color3.fromRGB(8, 5, 18)
 hudFrame.BackgroundTransparency = 0.08
 hudFrame.Visible          = false
-hudFrame.Parent           = hudSg
+hudFrame.Parent           = sg
 corner(hudFrame, 12)
 local hudStroke = stroke(hudFrame, Color3.fromRGB(110, 55, 255), 1.5, 0.2)
 
@@ -1055,7 +1055,7 @@ corner(hudBarFill, 4)
 -- HUD update loop — Mandi style: bar fills fast per spam cycle, resets, repeats
 local hudVisible = false
 task.spawn(function()
-    while hudSg and hudSg.Parent do
+    while sg and sg.Parent do
         task.wait(0.1)
         if igOn and apAutoMode then
             -- Slide in
@@ -1394,7 +1394,7 @@ if _cfgGet("arOn", false) then task.defer(function() enableAR() end) end
 makeLabel(moveSection, "Blocks ragdoll, fling, and joint breaks.")
 
 -- AIMBOT
-makeHeader(moveSection, "Lock")
+makeHeader(moveSection, "Duel Toggles")
 
 do
     local abOn       = false
@@ -1488,12 +1488,144 @@ do
         if abCharConn then abCharConn:Disconnect(); abCharConn = nil end
     end
 
+    -- Floating draggable Lock button (like duel cards)
+    local lockSg = makeGui("ShadowHUD_Lock")
+    lockSg.Enabled = false
+
+    local vp3      = workspace.CurrentCamera.ViewportSize
+    local LBW      = isMobile and 80 or 90
+    local LBH      = isMobile and 80 or 90
+    local LBX      = isMobile and 0.08 or 0.04
+    local LBY      = isMobile and 180 or 160
+
+    -- Glow behind card
+    local lGlow = Instance.new("Frame", lockSg)
+    lGlow.Size             = UDim2.new(0, LBW + 10, 0, LBH + 10)
+    lGlow.Position         = UDim2.new(LBX, -5, 0, LBY - 5)
+    lGlow.BackgroundColor3 = C.accent
+    lGlow.BackgroundTransparency = 0.85
+    lGlow.BorderSizePixel  = 0
+    lGlow.ZIndex           = 1
+    corner(lGlow, 18)
+
+    local lCard = Instance.new("Frame", lockSg)
+    lCard.Size             = UDim2.new(0, LBW, 0, LBH)
+    lCard.Position         = UDim2.new(LBX, 0, 0, LBY)
+    lCard.BackgroundColor3 = Color3.fromRGB(9, 7, 20)
+    lCard.BorderSizePixel  = 0
+    lCard.ZIndex           = 2
+    corner(lCard, 14)
+    local lCardStroke = stroke(lCard, C.accent, 1.5, 0.5)
+
+    local lGrad = Instance.new("UIGradient", lCard)
+    lGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 12, 50)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(7,  5,  16)),
+    })
+    lGrad.Rotation = 135
+
+    -- Status dot top-right
+    local lDot = Instance.new("Frame", lCard)
+    lDot.Size             = UDim2.new(0, 10, 0, 10)
+    lDot.Position         = UDim2.new(1, -14, 0, 8)
+    lDot.BackgroundColor3 = Color3.fromRGB(80, 60, 120)
+    lDot.BorderSizePixel  = 0
+    lDot.ZIndex           = 4
+    corner(lDot, 5)
+
+    -- Label
+    local lLbl = Instance.new("TextLabel", lCard)
+    lLbl.Size               = UDim2.new(1, -8, 1, -10)
+    lLbl.Position           = UDim2.new(0, 4, 0, 5)
+    lLbl.BackgroundTransparency = 1
+    lLbl.Text               = "Lock"
+    lLbl.Font               = Enum.Font.GothamBlack
+    lLbl.TextSize           = isMobile and 14 or 15
+    lLbl.TextColor3         = Color3.fromRGB(200, 175, 255)
+    lLbl.TextXAlignment     = Enum.TextXAlignment.Center
+    lLbl.TextYAlignment     = Enum.TextYAlignment.Center
+    lLbl.ZIndex             = 3
+    lLbl.TextWrapped        = true
+
+    -- Hit button + drag
+    local lHit = Instance.new("TextButton", lCard)
+    lHit.Size               = UDim2.new(1, 0, 1, 0)
+    lHit.BackgroundTransparency = 1
+    lHit.Text               = ""
+    lHit.ZIndex             = 10
+
+    local lActive = false
+    local function setLockActive(v)
+        lActive = v
+        tw(lDot, 0.2, {BackgroundColor3 = v and Color3.fromRGB(80, 255, 140) or Color3.fromRGB(80, 60, 120)})
+        tw(lCardStroke, 0.2, {
+            Color       = v and Color3.fromRGB(80, 255, 140) or C.accent,
+            Transparency = v and 0.1 or 0.5
+        })
+        tw(lGlow, 0.2, {BackgroundTransparency = v and 0.6 or 0.85})
+        tw(lLbl, 0.2, {TextColor3 = v and Color3.fromRGB(140, 255, 180) or Color3.fromRGB(200, 175, 255)})
+        if v then enableAB() else disableAB() end
+    end
+
+    -- Drag
+    local lDragging, lDragStart, lCardStart, lGlowStart = false, nil, nil, nil
+    local lHasDragged, lTouchId = false, nil
+    lHit.InputBegan:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1
+        or inp.UserInputType == Enum.UserInputType.Touch then
+            lDragging = true; lHasDragged = false; lTouchId = inp
+            lDragStart = Vector2.new(inp.Position.X, inp.Position.Y)
+            lCardStart = lCard.Position; lGlowStart = lGlow.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(inp)
+        if not lDragging then return end
+        if inp.UserInputType ~= Enum.UserInputType.MouseMovement
+        and inp.UserInputType ~= Enum.UserInputType.Touch then return end
+        local delta = Vector2.new(inp.Position.X, inp.Position.Y) - lDragStart
+        if delta.Magnitude > 6 then lHasDragged = true end
+        if lHasDragged then
+            lCard.Position = UDim2.new(lCardStart.X.Scale, lCardStart.X.Offset + delta.X, lCardStart.Y.Scale, lCardStart.Y.Offset + delta.Y)
+            lGlow.Position = UDim2.new(lGlowStart.X.Scale, lGlowStart.X.Offset + delta.X, lGlowStart.Y.Scale, lGlowStart.Y.Offset + delta.Y)
+        end
+    end)
+    lHit.InputEnded:Connect(function(inp)
+        if inp == lTouchId then
+            lDragging = false
+            if not lHasDragged then setLockActive(not lActive) end
+        end
+    end)
+    lHit.MouseButton1Click:Connect(function()
+        if not lHasDragged then setLockActive(not lActive) end
+    end)
+
+    -- Slide-in animation when shown
+    local function slideInLock()
+        lCard.Position = UDim2.new(lCardStart and lCardStart.X.Scale or LBX, lCardStart and lCardStart.X.Offset or 0, 0, -LBH - 20)
+        lGlow.Position = UDim2.new(lCardStart and lCardStart.X.Scale or LBX, lCardStart and lCardStart.X.Offset or 0, 0, -LBH - 30)
+        TweenService:Create(lCard, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            {Position = UDim2.new(LBX, 0, 0, LBY)}):Play()
+        TweenService:Create(lGlow, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            {Position = UDim2.new(LBX, -5, 0, LBY - 5)}):Play()
+        lCardStart = lCard.Position
+        lGlowStart = lGlow.Position
+    end
+
     local abSwitch = makeSwitch(moveSection, "Lock", false, function(on)
-        if on then enableAB() else disableAB() end
+        lockSg.Enabled = on
+        if on then
+            task.delay(0.05, slideInLock)
+        else
+            -- Slide out and disable
+            setLockActive(false)
+            TweenService:Create(lCard, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+                {Position = UDim2.new(lCard.Position.X.Scale, lCard.Position.X.Offset, 0, -LBH - 20)}):Play()
+            task.delay(0.25, function() lockSg.Enabled = false end)
+        end
     end)
     toggleSetters.abOn = function(v) abSwitch.set(v, true) end
 
-    makeLabel(moveSection, "Locks onto nearest player.")
+    makeLabel(moveSection, "Shows a floating Lock button when enabled.")
 end
 
 makeHeader(moveSection, "Speed")
@@ -2399,7 +2531,7 @@ local function doClose()
     }):Play()
     task.delay(0.3, function()
         if sg and sg.Parent then sg:Destroy() end
-        if hudSg and hudSg.Parent then hudSg:Destroy() end
+        if sg and sg.Parent then sg:Destroy() end
         if duelSg and duelSg.Parent then duelSg:Destroy() end
     end)
 end
