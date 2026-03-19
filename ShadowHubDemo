@@ -223,18 +223,18 @@ alineGrad.Color = ColorSequence.new({
 -- Title — SHADOW HUB + SETTINGS style like reference, with by @un4ig
 -- Vertical gradient accent line (like reference image — left of title)
 local titleLine = Instance.new("Frame")
-titleLine.Size = UDim2.new(0, 3, 0, 32)
-titleLine.Position = UDim2.new(0, 12, 0.5, -16)
-titleLine.BackgroundColor3 = C.accent
+titleLine.Size = UDim2.new(0, 4, 0, 38)
+titleLine.Position = UDim2.new(0, 12, 0.5, -19)
+titleLine.BackgroundColor3 = Color3.fromRGB(140, 60, 255)
 titleLine.BorderSizePixel = 0
 titleLine.ZIndex = 6
 titleLine.Parent = topbar
 corner(titleLine, 2)
 local titleLineGrad = Instance.new("UIGradient", titleLine)
 titleLineGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0,   Color3.fromRGB(160, 80, 255)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(100, 60, 255)),
-    ColorSequenceKeypoint.new(1,   Color3.fromRGB(60,  120, 255)),
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(180, 60, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(120, 80, 255)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(40,  160, 255)),
 })
 titleLineGrad.Rotation = 90
 
@@ -265,13 +265,13 @@ titleSub.ZIndex = 6
 titleSub.Parent = topbar
 
 local titleBy = Instance.new("TextLabel")
-titleBy.Size = UDim2.new(0, 120, 0, 14)
-titleBy.Position = UDim2.new(0, 22, 0, 30)
+titleBy.Size = UDim2.new(0, 120, 0, 16)
+titleBy.Position = UDim2.new(0, 22, 0, 32)
 titleBy.BackgroundTransparency = 1
 titleBy.Text = "by @un4ig"
-titleBy.Font = Enum.Font.GothamMedium
-titleBy.TextSize = 11
-titleBy.TextColor3 = Color3.fromRGB(120, 95, 180)
+titleBy.Font = Enum.Font.GothamBold
+titleBy.TextSize = 12
+titleBy.TextColor3 = Color3.fromRGB(140, 110, 195)
 titleBy.TextXAlignment = Enum.TextXAlignment.Left
 titleBy.ZIndex = 6
 titleBy.Parent = topbar
@@ -454,18 +454,18 @@ local function makeTab(name, icon)
     corner(btn, 8)
 
     local ind = Instance.new("Frame", btn)
-    ind.Size = UDim2.new(0, 3, 0.6, 0)
-    ind.Position = UDim2.new(0, 1, 0.2, 0)
-    ind.BackgroundColor3 = C.accent
+    ind.Size = UDim2.new(0, 4, 0.65, 0)
+    ind.Position = UDim2.new(0, 1, 0.175, 0)
+    ind.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
     ind.BackgroundTransparency = 1
     ind.BorderSizePixel = 0
     corner(ind, 2)
-    -- Purple to blue gradient on the indicator line
+    -- Vibrant purple to blue gradient — like image 2
     local indGrad = Instance.new("UIGradient", ind)
     indGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0,   Color3.fromRGB(160, 60, 255)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(100, 80, 255)),
-        ColorSequenceKeypoint.new(1,   Color3.fromRGB(60,  160, 255)),
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(180, 60, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(120, 80, 255)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(40,  160, 255)),
     })
     indGrad.Rotation = 90
 
