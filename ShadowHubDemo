@@ -714,12 +714,8 @@ makeLabel(homeSection, "Toggle features in Movement tab.")
 
 --------------------------------------------------------
 -- INFINITE JUMP
--- Bypass: invisible massless Part welded to HRootPart
--- BodyVelocity on the WELDED PART (not character)
--- Y-axis only, self-destructs after 0.1s
--- 3-way detection: Space / HumanoidState / Jump prop
 --------------------------------------------------------
-local ijOn   = false -- restored after UI builds
+local ijOn   = false
 local ijConn = nil
 local ijPart = nil
 local ijLast = 0
@@ -794,11 +790,8 @@ end)
 
 --------------------------------------------------------
 -- INSTANT GRAB SYSTEM
--- Copied 1-1 from doc16 old Shadow HUB
--- Sets HoldDuration=0 + MaxActivationDistance=huge on all prompts
--- Press E yourself once = instant grab, no hold wait
 --------------------------------------------------------
-local igOn     = false -- restored after UI builds
+local igOn     = false
 local igThread = nil
 local IG_DELAY = _cfgGet("IG_DELAY", 0.03)
 
@@ -808,7 +801,7 @@ local apConn        = nil
 local apHBConn      = nil
 local apNearestName = "—"
 local apNearestDist = 0
-local instaGrab     = false  -- shared with autoplay heartbeat loop
+local instaGrab     = false
 local promptCache   = {}
 local cacheThread   = nil
 
@@ -870,8 +863,6 @@ local function isBrainrotPrompt(prompt)
     return false
 end
 
--- INSTANT GRAB — Manual: HoldDuration=0 so E press is instant
--- Auto: sets instaGrab=true which the autoplay heartbeat loop picks up
 local function enableIG()
     if igOn then return end
     igOn = true
@@ -887,20 +878,15 @@ local function enableIG()
             task.wait(IG_DELAY)
         end
     end)
-    -- Auto mode: use the exact same heartbeat grab as autoplay
-    -- But only if autoplay isn't already running (avoid double grab)
     if apAutoMode and not auto1 and not auto2 then instaGrab = true end
 end
 
 local function disableIG()
     igOn = false
     igThread = nil
-    -- Only clear instaGrab if autoplay isn't currently using it
     if not auto1 and not auto2 then instaGrab = false end
 end
 
--- enableAP/disableAP now just control the HUD display vars
--- The actual grab is handled by the autoplay InternalStealCache heartbeat via instaGrab flag
 local function enableAP()
     apOn = true
 end
@@ -911,7 +897,6 @@ local function disableAP()
 end
 
 -- AUTO RETURN TO BRAINROT
--- Uses PivotTo in a 3-step sequence (like reference script) to bypass anticheat
 do
     local holdingPrompt  = nil
     local holdingPos     = nil
@@ -973,7 +958,6 @@ do
 
         task.spawn(function()
             task.wait(0.05)
-            -- 3-step sequence like reference script — bypass anticheat
             local mid = target + Vector3.new(0, 15, 0)
             tpTo(mid)
             task.wait(0.1)
@@ -1000,14 +984,12 @@ hudFrame.Parent           = sg
 corner(hudFrame, 12)
 local hudStroke = stroke(hudFrame, Color3.fromRGB(110, 55, 255), 1.5, 0.2)
 
--- Top accent line
 local hudAccent = Instance.new("Frame", hudFrame)
 hudAccent.Size             = UDim2.new(1, 0, 0, 2)
 hudAccent.BackgroundColor3 = Color3.fromRGB(110, 50, 255)
 hudAccent.BorderSizePixel  = 0
 corner(hudAccent, 1)
 
--- Status dot
 local hudDot = Instance.new("Frame", hudFrame)
 hudDot.Size             = UDim2.new(0, 8, 0, 8)
 hudDot.Position         = UDim2.new(0, 10, 0, 11)
@@ -1015,7 +997,6 @@ hudDot.BackgroundColor3 = Color3.fromRGB(110, 50, 255)
 hudDot.BorderSizePixel  = 0
 corner(hudDot, 4)
 
--- Animal name
 local hudName = Instance.new("TextLabel", hudFrame)
 hudName.Size                = UDim2.new(1, -26, 0, 20)
 hudName.Position            = UDim2.new(0, 22, 0, 5)
@@ -1027,7 +1008,6 @@ hudName.TextColor3          = Color3.fromRGB(215, 190, 255)
 hudName.TextXAlignment      = Enum.TextXAlignment.Left
 hudName.TextTruncate        = Enum.TextTruncate.AtEnd
 
--- Distance label
 local hudDist = Instance.new("TextLabel", hudFrame)
 hudDist.Size                = UDim2.new(1, -16, 0, 16)
 hudDist.Position            = UDim2.new(0, 10, 0, 26)
@@ -1038,7 +1018,6 @@ hudDist.TextSize            = 11
 hudDist.TextColor3          = Color3.fromRGB(150, 125, 200)
 hudDist.TextXAlignment      = Enum.TextXAlignment.Left
 
--- Progress bar BG (like Mandi's)
 local hudBarBG = Instance.new("Frame", hudFrame)
 hudBarBG.Size             = UDim2.new(1, -20, 0, 8)
 hudBarBG.Position         = UDim2.new(0, 10, 0, 56)
@@ -1052,13 +1031,11 @@ hudBarFill.BackgroundColor3 = Color3.fromRGB(110, 50, 255)
 hudBarFill.BorderSizePixel  = 0
 corner(hudBarFill, 4)
 
--- HUD update loop — Mandi style: bar fills fast per spam cycle, resets, repeats
 local hudVisible = false
 task.spawn(function()
     while sg and sg.Parent do
         task.wait(0.1)
         if igOn and apAutoMode then
-            -- Slide in
             if not hudVisible then
                 hudVisible        = true
                 hudFrame.Visible  = true
@@ -1071,7 +1048,7 @@ task.spawn(function()
             local grabbing = apFiring
             local green  = Color3.fromRGB(80, 255, 140)
             local purple = Color3.fromRGB(110, 50, 255)
-            local pink   = Color3.fromRGB(255, 0, 150)  -- Mandi's bar color
+            local pink   = Color3.fromRGB(255, 0, 150)
 
             hudDot.BackgroundColor3 = grabbing and green or purple
             hudStroke.Color         = grabbing and Color3.fromRGB(60, 220, 120) or Color3.fromRGB(110, 55, 255)
@@ -1093,7 +1070,6 @@ task.spawn(function()
                 hudDist.TextColor3 = Color3.fromRGB(150, 125, 200)
             end
 
-            -- Bar animation: exactly like Mandi's — fills over spam interval, resets, repeats
             if grabbing then
                 hudBarFill.BackgroundColor3 = pink
                 hudBarFill.Size = UDim2.new(0, 0, 1, 0)
@@ -1122,15 +1098,8 @@ end)
 
 --------------------------------------------------------
 -- ANTI RAGDOLL + ANTI FLING
--- 5 layers:
--- 1. Heartbeat: force out of Physics state every frame → no ragdoll pose
--- 2. Heartbeat: zero AssemblyLinearVelocity when Physics state → no fling
--- 3. DescendantAdded: destroy BallSocketConstraints instantly → joints stay
--- 4. RagdollEndTime attribute: keep set to past → server thinks ragdoll ended
--- 5. RemoteEvent intercept: block Ragdoll remote from firing on client
--- Respawns cleanly via CharacterAdded
 --------------------------------------------------------
-local arOn    = false -- restored after UI builds
+local arOn    = false
 local arConns = {}
 
 local function enableAR()
@@ -1145,12 +1114,8 @@ local function enableAR()
         if not hum or not root then return end
         local cam = workspace.CurrentCamera
 
-        -- Layer 1 + 2: Heartbeat — fight Physics state, zero fling velocity,
-        -- lock camera subject so it never follows the head
         local hbConn = RunService.Heartbeat:Connect(function()
             if not arOn then return end
-
-            -- Force out of ragdoll state
             if hum:GetState() == Enum.HumanoidStateType.Physics then
                 root.AssemblyLinearVelocity = Vector3.new(
                     0,
@@ -1159,13 +1124,9 @@ local function enableAR()
                 )
                 hum:ChangeState(Enum.HumanoidStateType.GettingUp)
             end
-
-            -- Lock camera to Humanoid — prevents it from following head
             if cam and cam.CameraSubject ~= hum then
                 cam.CameraSubject = hum
             end
-
-            -- Keep RagdollEndTime in the past
             pcall(function()
                 local t = workspace:GetServerTimeNow()
                 if player:GetAttribute("RagdollEndTime") and
@@ -1176,8 +1137,6 @@ local function enableAR()
         end)
         table.insert(arConns, hbConn)
 
-        -- Layer 3: watch Motor6D joints — if the ragdoll system disables them
-        -- (which detaches limbs/head), re-enable them immediately
         local function watchMotors()
             for _, d in ipairs(char:GetDescendants()) do
                 if d:IsA("Motor6D") then
@@ -1193,7 +1152,6 @@ local function enableAR()
         end
         watchMotors()
 
-        -- Also watch for new Motor6Ds added later
         local newMotorConn = char.DescendantAdded:Connect(function(d)
             if not arOn then return end
             if d:IsA("Motor6D") then
@@ -1205,7 +1163,6 @@ local function enableAR()
                 end)
                 table.insert(arConns, mc)
             end
-            -- Destroy ragdoll constraints added dynamically
             if d:IsA("BallSocketConstraint") or d:IsA("HingeConstraint") then
                 task.defer(function()
                     if d and d.Parent and arOn then
@@ -1217,7 +1174,6 @@ local function enableAR()
         table.insert(arConns, newMotorConn)
     end
 
-    -- Layer 4: intercept Ragdoll RemoteEvent
     pcall(function()
         local pkgs   = game:GetService("ReplicatedStorage"):FindFirstChild("Packages")
         local folder = pkgs and pkgs:FindFirstChild("Ragdoll")
@@ -1228,7 +1184,6 @@ local function enableAR()
         end
     end)
 
-    -- Layer 5: disable RagdollClient script
     pcall(function()
         for _, s in ipairs(player.PlayerScripts:GetChildren()) do
             if s.Name:lower():match("ragdollclient") then
@@ -1265,18 +1220,14 @@ local function disableAR()
 end
 
 --------------------------------------------------------
---------------------------------------------------------
 -- SPEED BOOST + STEAL SPEED
--- Copied 1-1 from Savage Hub's SpeedCustomizer system.
--- Single Heartbeat, MoveDirection-based, WalkSpeed<25 = carrying.
--- sbOn = speed boost toggle, ssOn = steal speed toggle.
 --------------------------------------------------------
 local SPEED_VAL       = _cfgGet("SPEED_VAL", 60)
 local STEAL_SPEED_VAL = _cfgGet("STEAL_SPEED_VAL", 30)
 local MAX_SPEED       = 500
 
-local sbOn = false -- restored after UI builds
-local ssOn = false -- restored after UI builds
+local sbOn = false
+local ssOn = false
 
 local speedConn    = nil
 local speedCharConn = nil
@@ -1300,7 +1251,6 @@ local function startSpeedLoop()
         local moveDir = speedHum.MoveDirection
         if moveDir.Magnitude <= 0 then return end
 
-        -- Carry detection: WalkSpeed drops below 25 when carrying a brainrot
         local carrying = speedHum.WalkSpeed < 25
 
         local targetSpeed = nil
@@ -1368,7 +1318,6 @@ end
 
 -- MOVEMENT SECTION
 --------------------------------------------------------
--- Shared setter table so save config can restore toggle visuals on load
 local toggleSetters = {}
 
 makeHeader(moveSection, "Movement")
@@ -1377,7 +1326,6 @@ local ijSwitch = makeSwitch(moveSection, "Infinite Jump", _cfgGet("ijOn", false)
     if on then enableIJ() else disableIJ() end
 end)
 toggleSetters.ijOn = function(v) ijSwitch.set(v, true) end
--- If saved as ON, actually enable it (makeSwitch default doesn't fire the callback)
 if _cfgGet("ijOn", false) then task.defer(function() enableIJ() end) end
 
 local ijPowerBox = makeInput(moveSection, "Jump Power", IJ_POWER, 1, 500, function(v)
@@ -1388,22 +1336,17 @@ local arSwitch = makeSwitch(moveSection, "Anti Ragdoll", _cfgGet("arOn", false),
     if on then enableAR() else disableAR() end
 end)
 toggleSetters.arOn = function(v) arSwitch.set(v, true) end
--- If saved as ON, actually enable it
 if _cfgGet("arOn", false) then task.defer(function() enableAR() end) end
 
 makeLabel(moveSection, "Blocks ragdoll, fling, and joint breaks.")
 
--- AIMBOT
+-- AIMBOT / LOCK PLAYER
 makeHeader(moveSection, "Duel Toggles")
 
 do
     local abOn       = false
     local abConn     = nil
     local abCharConn = nil
-
-    -- Copied from K7 Hub — velocity-based, no CFrame writes, no AlignOrientation
-    -- Flies character toward enemy's front face using AssemblyLinearVelocity
-    -- Anticheat sees this as normal fast movement, not a rotation exploit
 
     local function pickTarget()
         local char = player.Character
@@ -1429,7 +1372,6 @@ do
         local char = player.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return end
-        -- Aim for a point in FRONT of the target (1.5 studs in their look direction)
         local front = targetHRP.Position + targetHRP.CFrame.LookVector * 1.5
         local dir   = Vector3.new(
             front.X - root.Position.X,
@@ -1437,7 +1379,6 @@ do
             front.Z - root.Position.Z
         )
         if dir.Magnitude < 0.1 then return end
-        -- Push toward them using velocity — same as speed boost, anticheat safe
         root.AssemblyLinearVelocity = Vector3.new(
             dir.Unit.X * 56.5,
             root.AssemblyLinearVelocity.Y,
@@ -1446,7 +1387,7 @@ do
     end
 
     local abTarget = nil
-    local abRepick = 0  -- repick timer
+    local abRepick = 0
 
     local function enableAB()
         if abOn then return end
@@ -1460,7 +1401,6 @@ do
             local root = char and char:FindFirstChild("HumanoidRootPart")
             if not root then return end
 
-            -- Repick target every 2 seconds or if gone
             abRepick += 1
             if abRepick >= 120 or not abTarget or not abTarget.Character
             or not abTarget.Character:FindFirstChild("HumanoidRootPart") then
@@ -1488,149 +1428,275 @@ do
         if abCharConn then abCharConn:Disconnect(); abCharConn = nil end
     end
 
-    -- Floating draggable Lock button (like duel cards)
+    -- ============================================================
+    -- LOCK PLAYER — Floating draggable card button
+    -- Dark card, dot top-right, "Lock Player" label
+    -- Dot = grey when inactive, green when active
+    -- Toggle in menu shows/hides the card with slide animation
+    -- ============================================================
     local lockSg = makeGui("ShadowHUD_Lock")
     lockSg.Enabled = false
 
-    local vp3      = workspace.CurrentCamera.ViewportSize
-    local LBW      = isMobile and 80 or 90
-    local LBH      = isMobile and 80 or 90
-    local LBX      = isMobile and 0.08 or 0.04
-    local LBY      = isMobile and 180 or 160
+    -- Card sizing — well-proportioned on both mobile and PC
+    local LBW = isMobile and 110 or 120
+    local LBH = isMobile and 110 or 120
+    -- Default position: left side of screen, vertically centered-ish
+    local LB_SCALE_X = isMobile and 0.06 or 0.04
+    local LB_OFFSET_Y = isMobile and 200 or 180
 
-    -- Glow behind card
+    -- Outer glow halo behind card
     local lGlow = Instance.new("Frame", lockSg)
-    lGlow.Size             = UDim2.new(0, LBW + 10, 0, LBH + 10)
-    lGlow.Position         = UDim2.new(LBX, -5, 0, LBY - 5)
-    lGlow.BackgroundColor3 = C.accent
-    lGlow.BackgroundTransparency = 0.85
+    lGlow.Size             = UDim2.new(0, LBW + 18, 0, LBH + 18)
+    lGlow.Position         = UDim2.new(LB_SCALE_X, -9, 0, LB_OFFSET_Y - 9)
+    lGlow.BackgroundColor3 = Color3.fromRGB(120, 50, 255)
+    lGlow.BackgroundTransparency = 0.88
     lGlow.BorderSizePixel  = 0
     lGlow.ZIndex           = 1
-    corner(lGlow, 18)
+    corner(lGlow, 22)
 
+    -- Main card
     local lCard = Instance.new("Frame", lockSg)
     lCard.Size             = UDim2.new(0, LBW, 0, LBH)
-    lCard.Position         = UDim2.new(LBX, 0, 0, LBY)
-    lCard.BackgroundColor3 = Color3.fromRGB(9, 7, 20)
+    lCard.Position         = UDim2.new(LB_SCALE_X, 0, 0, LB_OFFSET_Y)
+    lCard.BackgroundColor3 = Color3.fromRGB(10, 7, 22)
     lCard.BorderSizePixel  = 0
     lCard.ZIndex           = 2
-    corner(lCard, 14)
-    local lCardStroke = stroke(lCard, C.accent, 1.5, 0.5)
+    corner(lCard, 16)
+    local lCardStroke = stroke(lCard, Color3.fromRGB(100, 45, 210), 1.5, 0.45)
 
+    -- Card gradient — dark purple top to near-black bottom
     local lGrad = Instance.new("UIGradient", lCard)
     lGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 12, 50)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(7,  5,  16)),
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(28, 14, 62)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(14, 8,  32)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(6,  4,  16)),
     })
-    lGrad.Rotation = 135
+    lGrad.Rotation = 145
 
-    -- Status dot top-right
+    -- Thin accent line at the very top of the card (like Shadow HUB topbar)
+    local lTopLine = Instance.new("Frame", lCard)
+    lTopLine.Size             = UDim2.new(0.6, 0, 0, 2)
+    lTopLine.Position         = UDim2.new(0.2, 0, 0, 0)
+    lTopLine.BackgroundColor3 = Color3.fromRGB(130, 55, 255)
+    lTopLine.BorderSizePixel  = 0
+    lTopLine.ZIndex           = 4
+    corner(lTopLine, 1)
+    local lTopLineGrad = Instance.new("UIGradient", lTopLine)
+    lTopLineGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(160, 60, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(120, 80, 255)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(60,  160, 255)),
+    })
+
+    -- Status dot — top right corner (exactly like reference image)
     local lDot = Instance.new("Frame", lCard)
     lDot.Size             = UDim2.new(0, 10, 0, 10)
-    lDot.Position         = UDim2.new(1, -14, 0, 8)
-    lDot.BackgroundColor3 = Color3.fromRGB(80, 60, 120)
+    lDot.Position         = UDim2.new(1, -18, 0, 10)
+    lDot.BackgroundColor3 = Color3.fromRGB(70, 55, 100) -- inactive: dim grey-purple
     lDot.BorderSizePixel  = 0
-    lDot.ZIndex           = 4
+    lDot.ZIndex           = 5
     corner(lDot, 5)
+    -- Subtle dot glow ring
+    local lDotGlow = Instance.new("Frame", lCard)
+    lDotGlow.Size             = UDim2.new(0, 18, 0, 18)
+    lDotGlow.Position         = UDim2.new(1, -22, 0, 6)
+    lDotGlow.BackgroundColor3 = Color3.fromRGB(70, 55, 100)
+    lDotGlow.BackgroundTransparency = 0.85
+    lDotGlow.BorderSizePixel  = 0
+    lDotGlow.ZIndex           = 4
+    corner(lDotGlow, 9)
 
-    -- Label
+    -- Lock icon (lock emoji / symbol, centered upper area)
+    local lIcon = Instance.new("TextLabel", lCard)
+    lIcon.Size               = UDim2.new(1, 0, 0, 40)
+    lIcon.Position           = UDim2.new(0, 0, 0, 20)
+    lIcon.BackgroundTransparency = 1
+    lIcon.Text               = "🔒"
+    lIcon.Font               = Enum.Font.GothamBold
+    lIcon.TextSize           = isMobile and 26 or 28
+    lIcon.TextColor3         = Color3.fromRGB(160, 100, 255)
+    lIcon.TextXAlignment     = Enum.TextXAlignment.Center
+    lIcon.TextYAlignment     = Enum.TextYAlignment.Center
+    lIcon.ZIndex             = 4
+
+    -- "Lock Player" label
     local lLbl = Instance.new("TextLabel", lCard)
-    lLbl.Size               = UDim2.new(1, -8, 1, -10)
-    lLbl.Position           = UDim2.new(0, 4, 0, 5)
+    lLbl.Size               = UDim2.new(1, -12, 0, 22)
+    lLbl.Position           = UDim2.new(0, 6, 0, 62)
     lLbl.BackgroundTransparency = 1
-    lLbl.Text               = "Lock"
+    lLbl.Text               = "Lock Player"
     lLbl.Font               = Enum.Font.GothamBlack
-    lLbl.TextSize           = isMobile and 14 or 15
-    lLbl.TextColor3         = Color3.fromRGB(200, 175, 255)
+    lLbl.TextSize           = isMobile and 13 or 14
+    lLbl.TextColor3         = Color3.fromRGB(210, 185, 255)
     lLbl.TextXAlignment     = Enum.TextXAlignment.Center
-    lLbl.TextYAlignment     = Enum.TextYAlignment.Center
-    lLbl.ZIndex             = 3
-    lLbl.TextWrapped        = true
+    lLbl.ZIndex             = 4
 
-    -- Hit button + drag
+    -- Sub-status label below (shows OFF / ON)
+    local lStatus = Instance.new("TextLabel", lCard)
+    lStatus.Size               = UDim2.new(1, -12, 0, 16)
+    lStatus.Position           = UDim2.new(0, 6, 0, 85)
+    lStatus.BackgroundTransparency = 1
+    lStatus.Text               = "OFF"
+    lStatus.Font               = Enum.Font.GothamSemibold
+    lStatus.TextSize           = isMobile and 10 or 11
+    lStatus.TextColor3         = Color3.fromRGB(100, 80, 145)
+    lStatus.TextXAlignment     = Enum.TextXAlignment.Center
+    lStatus.ZIndex             = 4
+
+    -- Invisible hit button over entire card
     local lHit = Instance.new("TextButton", lCard)
     lHit.Size               = UDim2.new(1, 0, 1, 0)
     lHit.BackgroundTransparency = 1
     lHit.Text               = ""
     lHit.ZIndex             = 10
 
+    -- Active state toggle
     local lActive = false
     local function setLockActive(v)
         lActive = v
-        tw(lDot, 0.2, {BackgroundColor3 = v and Color3.fromRGB(80, 255, 140) or Color3.fromRGB(80, 60, 120)})
-        tw(lCardStroke, 0.2, {
-            Color       = v and Color3.fromRGB(80, 255, 140) or C.accent,
-            Transparency = v and 0.1 or 0.5
-        })
-        tw(lGlow, 0.2, {BackgroundTransparency = v and 0.6 or 0.85})
-        tw(lLbl, 0.2, {TextColor3 = v and Color3.fromRGB(140, 255, 180) or Color3.fromRGB(200, 175, 255)})
+
+        -- Dot: green when active, dim grey-purple when inactive
+        TweenService:Create(lDot, TweenInfo.new(0.22, Enum.EasingStyle.Quad), {
+            BackgroundColor3 = v
+                and Color3.fromRGB(60, 230, 110)
+                or  Color3.fromRGB(70, 55, 100)
+        }):Play()
+        TweenService:Create(lDotGlow, TweenInfo.new(0.22, Enum.EasingStyle.Quad), {
+            BackgroundColor3 = v
+                and Color3.fromRGB(60, 230, 110)
+                or  Color3.fromRGB(70, 55, 100),
+            BackgroundTransparency = v and 0.65 or 0.85
+        }):Play()
+
+        -- Card stroke: brighter purple-green when active
+        TweenService:Create(lCardStroke, TweenInfo.new(0.22, Enum.EasingStyle.Quad), {
+            Color        = v and Color3.fromRGB(80, 230, 120) or Color3.fromRGB(100, 45, 210),
+            Transparency = v and 0.05 or 0.45
+        }):Play()
+
+        -- Glow halo
+        TweenService:Create(lGlow, TweenInfo.new(0.22, Enum.EasingStyle.Quad), {
+            BackgroundColor3     = v and Color3.fromRGB(60, 200, 100) or Color3.fromRGB(120, 50, 255),
+            BackgroundTransparency = v and 0.72 or 0.88
+        }):Play()
+
+        -- Icon color
+        TweenService:Create(lIcon, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            TextColor3 = v and Color3.fromRGB(100, 255, 160) or Color3.fromRGB(160, 100, 255)
+        }):Play()
+
+        -- Label color
+        TweenService:Create(lLbl, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            TextColor3 = v and Color3.fromRGB(140, 255, 185) or Color3.fromRGB(210, 185, 255)
+        }):Play()
+
+        -- Status text
+        lStatus.Text      = v and "ON" or "OFF"
+        lStatus.TextColor3 = v and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(100, 80, 145)
+
         if v then enableAB() else disableAB() end
     end
 
-    -- Drag
+    -- Drag logic (same pattern as rest of script — works on mobile)
     local lDragging, lDragStart, lCardStart, lGlowStart = false, nil, nil, nil
     local lHasDragged, lTouchId = false, nil
+    local L_DRAG_THRESH = 6
+
     lHit.InputBegan:Connect(function(inp)
         if inp.UserInputType == Enum.UserInputType.MouseButton1
         or inp.UserInputType == Enum.UserInputType.Touch then
-            lDragging = true; lHasDragged = false; lTouchId = inp
-            lDragStart = Vector2.new(inp.Position.X, inp.Position.Y)
-            lCardStart = lCard.Position; lGlowStart = lGlow.Position
+            lDragging  = true
+            lHasDragged = false
+            lTouchId   = inp
+            lDragStart  = Vector2.new(inp.Position.X, inp.Position.Y)
+            lCardStart  = lCard.Position
+            lGlowStart  = lGlow.Position
         end
     end)
+
     UserInputService.InputChanged:Connect(function(inp)
         if not lDragging then return end
         if inp.UserInputType ~= Enum.UserInputType.MouseMovement
         and inp.UserInputType ~= Enum.UserInputType.Touch then return end
         local delta = Vector2.new(inp.Position.X, inp.Position.Y) - lDragStart
-        if delta.Magnitude > 6 then lHasDragged = true end
+        if delta.Magnitude > L_DRAG_THRESH then lHasDragged = true end
         if lHasDragged then
-            lCard.Position = UDim2.new(lCardStart.X.Scale, lCardStart.X.Offset + delta.X, lCardStart.Y.Scale, lCardStart.Y.Offset + delta.Y)
-            lGlow.Position = UDim2.new(lGlowStart.X.Scale, lGlowStart.X.Offset + delta.X, lGlowStart.Y.Scale, lGlowStart.Y.Offset + delta.Y)
+            lCard.Position = UDim2.new(
+                lCardStart.X.Scale, lCardStart.X.Offset + delta.X,
+                lCardStart.Y.Scale, lCardStart.Y.Offset + delta.Y
+            )
+            lGlow.Position = UDim2.new(
+                lGlowStart.X.Scale, lGlowStart.X.Offset + delta.X,
+                lGlowStart.Y.Scale, lGlowStart.Y.Offset + delta.Y
+            )
         end
     end)
+
     lHit.InputEnded:Connect(function(inp)
         if inp == lTouchId then
             lDragging = false
-            if not lHasDragged then setLockActive(not lActive) end
+            if not lHasDragged then
+                setLockActive(not lActive)
+            end
         end
     end)
+
+    -- PC click fallback
     lHit.MouseButton1Click:Connect(function()
-        if not lHasDragged then setLockActive(not lActive) end
+        if not lHasDragged then
+            setLockActive(not lActive)
+        end
     end)
 
-    -- Slide-in animation when shown
+    -- Slide-in animation when card first appears
     local function slideInLock()
-        lCard.Position = UDim2.new(lCardStart and lCardStart.X.Scale or LBX, lCardStart and lCardStart.X.Offset or 0, 0, -LBH - 20)
-        lGlow.Position = UDim2.new(lCardStart and lCardStart.X.Scale or LBX, lCardStart and lCardStart.X.Offset or 0, 0, -LBH - 30)
-        TweenService:Create(lCard, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-            {Position = UDim2.new(LBX, 0, 0, LBY)}):Play()
-        TweenService:Create(lGlow, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-            {Position = UDim2.new(LBX, -5, 0, LBY - 5)}):Play()
-        lCardStart = lCard.Position
-        lGlowStart = lGlow.Position
+        -- Always slide in from top
+        local curX = lCard.Position.X
+        lCard.Position = UDim2.new(curX.Scale, curX.Offset, 0, -LBH - 30)
+        lGlow.Position = UDim2.new(curX.Scale, curX.Offset - 9, 0, -LBH - 39)
+        TweenService:Create(lCard,
+            TweenInfo.new(0.38, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            {Position = UDim2.new(LB_SCALE_X, 0, 0, LB_OFFSET_Y)}
+        ):Play()
+        TweenService:Create(lGlow,
+            TweenInfo.new(0.38, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            {Position = UDim2.new(LB_SCALE_X, -9, 0, LB_OFFSET_Y - 9)}
+        ):Play()
+        -- Reset start positions after slide
+        task.delay(0.4, function()
+            lCardStart = lCard.Position
+            lGlowStart = lGlow.Position
+        end)
     end
 
+    -- Toggle in Movement menu — shows/hides the floating card
     local abSwitch = makeSwitch(moveSection, "Lock", false, function(on)
-        lockSg.Enabled = on
         if on then
+            lockSg.Enabled = true
             task.delay(0.05, slideInLock)
         else
-            -- Slide out and disable
-            setLockActive(false)
-            TweenService:Create(lCard, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-                {Position = UDim2.new(lCard.Position.X.Scale, lCard.Position.X.Offset, 0, -LBH - 20)}):Play()
-            task.delay(0.25, function() lockSg.Enabled = false end)
+            -- Turn off lock if active, then slide out
+            if lActive then setLockActive(false) end
+            TweenService:Create(lCard,
+                TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+                {Position = UDim2.new(lCard.Position.X.Scale, lCard.Position.X.Offset, 0, -LBH - 30)}
+            ):Play()
+            TweenService:Create(lGlow,
+                TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+                {Position = UDim2.new(lGlow.Position.X.Scale, lGlow.Position.X.Offset, 0, -LBH - 39)}
+            ):Play()
+            task.delay(0.25, function()
+                lockSg.Enabled = false
+            end)
         end
     end)
     toggleSetters.abOn = function(v) abSwitch.set(v, true) end
 
-    makeLabel(moveSection, "Shows a floating Lock button when enabled.")
+    makeLabel(moveSection, "Shows a floating Lock Player button.")
 end
 
 makeHeader(moveSection, "Speed")
 
--- Upvalue references so doReset can update them
 local sbVbox, ssVbox, igVbox
 
 -- Speed Boost row with inline value box
@@ -1644,7 +1710,6 @@ do
     row.MouseEnter:Connect(function() tw(row, 0.12, {BackgroundColor3 = Color3.fromRGB(18,12,34)}) tw(rs, 0.12, {Transparency=0.2}) end)
     row.MouseLeave:Connect(function() tw(row, 0.12, {BackgroundColor3 = C.row}) tw(rs, 0.12, {Transparency=0.6}) end)
 
-    -- Label
     local lbl = Instance.new("TextLabel", row)
     lbl.Size = UDim2.new(0, 95, 1, 0)
     lbl.Position = UDim2.new(0, 12, 0, 0)
@@ -1655,7 +1720,6 @@ do
     lbl.TextColor3 = Color3.fromRGB(200,175,235)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Inline value box
     local vf = Instance.new("Frame", row)
     vf.Size = UDim2.new(0, 54, 0, 26)
     vf.Position = UDim2.new(0, 110, 0.5, -13)
@@ -1680,7 +1744,6 @@ do
         else vbox.Text = tostring(SPEED_VAL) end
     end)
 
-    -- Toggle
     local track = Instance.new("Frame", row)
     track.Size = UDim2.new(0,46,0,24)
     track.Position = UDim2.new(1,-56,0.5,-12)
@@ -1786,7 +1849,7 @@ makeLabel(moveSection, "Steal Speed activates while carrying a brainrot.")
 
 makeHeader(moveSection, "Instant Grab Brainrot")
 
--- Instant Grab row with inline delay box (like Speed Boost)
+-- Instant Grab row with inline delay box
 do
     local row = Instance.new("Frame")
     row.Size             = UDim2.new(1, 0, 0, 42)
@@ -1807,7 +1870,6 @@ do
     lbl.TextColor3 = Color3.fromRGB(200,175,235)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Inline delay box
     local vf = Instance.new("Frame", row)
     vf.Size = UDim2.new(0, 54, 0, 26)
     vf.Position = UDim2.new(0, 110, 0.5, -13)
@@ -1832,7 +1894,6 @@ do
         else vbox.Text = tostring(IG_DELAY) end
     end)
 
-    -- Toggle
     local track = Instance.new("Frame", row)
     track.Size = UDim2.new(0,46,0,24)
     track.Position = UDim2.new(1,-56,0.5,-12)
@@ -1904,9 +1965,7 @@ do
         tw(autoBtn,   0.15, {TextColor3       = v     and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,180)})
         tw(manualBtn, 0.15, {BackgroundColor3 = not v and C.accent or Color3.fromRGB(28,20,50)})
         tw(manualBtn, 0.15, {TextColor3       = not v and Color3.fromRGB(220,200,255) or Color3.fromRGB(130,110,180)})
-        -- If IG is already on, switch grab mode immediately
         if igOn then
-            -- Only activate instaGrab if autoplay isn't already using it
             instaGrab = v and (not auto1 and not auto2) or (auto1 or auto2)
         end
     end
@@ -1918,7 +1977,6 @@ end
 makeLabel(moveSection, "Manual: press E yourself. Auto: fires automatically.")
 
 -- SAVE CONFIG
--- Custom header with inline RESET button
 do
     local hRow = Instance.new("Frame")
     hRow.Size = UDim2.new(1, 0, 0, 30)
@@ -1956,7 +2014,6 @@ do
     hLbl.TextColor3 = Color3.fromRGB(210, 180, 255)
     hLbl.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- RESET button inline
     local resetBtn = Instance.new("TextButton", hRow)
     resetBtn.Size = UDim2.new(0, 58, 0, 20)
     resetBtn.Position = UDim2.new(1, -64, 0.5, -10)
@@ -1977,22 +2034,18 @@ do
     end)
 
     local function doReset()
-        -- 1. Reset numbers to defaults
         IJ_POWER        = 42
         IG_DELAY        = 0.03
         SPEED_VAL       = 60
         STEAL_SPEED_VAL = 30
 
-        -- 2. Update all input boxes visually
         if ijPowerBox then ijPowerBox.Text = tostring(IJ_POWER) end
         if sbVbox     then sbVbox.Text     = tostring(SPEED_VAL) end
         if ssVbox     then ssVbox.Text     = tostring(STEAL_SPEED_VAL) end
         if igVbox     then igVbox.Text     = tostring(IG_DELAY) end
 
-        -- 3. Force disable all first (clears the "already on" guards)
         disableIJ(); disableAR(); disableSB(); disableSS(); disableIG()
 
-        -- 4. Re-enable everything fresh + update visuals
         task.defer(function()
             ijSwitch.set(true, true); enableIJ()
             arSwitch.set(true, true); enableAR()
@@ -2001,7 +2054,6 @@ do
             if toggleSetters.igOn then toggleSetters.igOn(true) end
         end)
 
-        -- 5. Flash feedback
         tw(resetBtn, 0.1, {BackgroundColor3 = Color3.fromRGB(35, 18, 75)})
         resetBtn.Text = "DONE"
         resetBtn.TextColor3 = Color3.fromRGB(140, 255, 180)
@@ -2042,7 +2094,6 @@ do
         local ok = false
         pcall(function()
             local encoded = HttpService:JSONEncode(getData())
-            -- Try writefile (standard executor API)
             if writefile then
                 writefile(CFG, encoded)
                 ok = true
@@ -2051,7 +2102,6 @@ do
         return ok
     end
 
-    -- Row
     local saveRow = Instance.new("Frame")
     saveRow.Size = UDim2.new(1, 0, 0, 42)
     saveRow.BackgroundColor3 = C.row
@@ -2069,7 +2119,6 @@ do
     saveBtn.AutoButtonColor = false
     saveBtn.Parent = saveRow
 
-    -- Toast
     local toast = Instance.new("Frame")
     toast.Size = UDim2.new(0, 220, 0, 40)
     toast.Position = UDim2.new(0.5, -110, 0, -60)
@@ -2133,11 +2182,8 @@ makeTab("Duels", "")
 makeHeader(duelsSection, "Duels")
 
 --------------------------------------------------------
--- AUTO PLAY — copied 1-1 from ANTILOSER doc6
--- Waypoints, speeds, and instaGrab logic all identical
+-- AUTO PLAY
 --------------------------------------------------------
-
--- Waypoints (doc6 exact)
 local A1_P1 = Vector3.new(-472.59, -7.30,  94.43)
 local A1_P2 = Vector3.new(-484.55, -5.33,  95.05)
 local A1_P3 = Vector3.new(-472.59, -7.30,  94.43)
@@ -2148,15 +2194,13 @@ local B2 = Vector3.new(-484.92, -5.13,  24.53)
 local B3 = Vector3.new(-474.02, -7.30,  25.55)
 local B4 = Vector3.new(-470.93, -6.83, 113.38)
 
--- Speeds (doc6 exact)
 local SPEED_IDA   = _cfgGet("SPEED_IDA", 56)
 local SPEED_VOLTA = _cfgGet("SPEED_VOLTA", 29)
 
 local auto1      = false
 local auto2      = false
-local autoplayOn = false  -- tracks autoplay toggle for save config
+local autoplayOn = false
 
--- doc6 go() — sets AssemblyLinearVelocity every frame
 local function go(pos, speed, cond)
     local r = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not r then return end
@@ -2171,10 +2215,6 @@ local function go(pos, speed, cond)
     end
 end
 
--- doc6 InstaGrab system — Heartbeat scans ALL workspace ProximityPrompts
--- buildCallbacks: getconnections on PromptButtonHoldBegan + Triggered
--- runSteal: hold functions -> wait(0.15) -> trigger functions
--- Only fires when instaGrab = true
 local InternalStealCache = {}
 
 local function buildCallbacks(prompt)
@@ -2208,7 +2248,7 @@ local function runSteal(prompt)
     end)
 end
 
-local stealRadius = 7  -- doc6 exact
+local stealRadius = 7
 
 local _igFrame = 0
 RunService.Heartbeat:Connect(function()
@@ -2230,11 +2270,9 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- ScreenGui for floating buttons
 local duelSg = makeGui("ShadowHUD_Duels")
 duelSg.Enabled = false
 
--- Responsive button size
 local vp2   = workspace.CurrentCamera.ViewportSize
 local DBW   = isMobile and math.floor(vp2.X * 0.38) or 150
 local DBH   = isMobile and 56 or 64
@@ -2406,7 +2444,6 @@ duelSg:GetPropertyChangedSignal("Enabled"):Connect(function()
     end
 end)
 
--- Auto Play 1 (Left) — doc6 exact flow
 leftHit.MouseButton1Click:Connect(function()
     if leftDragged() then return end
     auto1 = not auto1
@@ -2414,28 +2451,22 @@ leftHit.MouseButton1Click:Connect(function()
     if auto1 then
         auto2 = false; setRightOn(false)
         task.spawn(function()
-            -- Phase 1: go to staging point
             setLeftOn(true, "Going...")
             go(A1_P1, SPEED_IDA, function() return auto1 end)
             if not auto1 then return end
 
-            -- Phase 2: go to steal zone
             setLeftOn(true, "Stealing ⚡")
             go(A1_P2, SPEED_IDA, function() return auto1 end)
             if not auto1 then return end
 
-            -- doc6 exact: set instaGrab=true at steal zone
             instaGrab = true
 
-            -- Phase 3: return to staging
             setLeftOn(true, "Returning...")
             go(A1_P3, SPEED_VOLTA, function() return auto1 end)
             if not auto1 then instaGrab = false; return end
 
-            -- doc6 exact: set instaGrab=false after leaving steal zone
             instaGrab = false
 
-            -- Phase 4: return to spawn
             go(A1_P4, SPEED_VOLTA, function() return auto1 end)
 
             auto1 = false
@@ -2445,8 +2476,6 @@ leftHit.MouseButton1Click:Connect(function()
     end
 end)
 
-
--- Auto Play 2 (Right) — doc6 exact flow
 rightHit.MouseButton1Click:Connect(function()
     if rightDragged() then return end
     auto2 = not auto2
@@ -2479,8 +2508,6 @@ rightHit.MouseButton1Click:Connect(function()
     end
 end)
 
-
--- Autoplay toggle shows/hides floating buttons
 local autoplaySwitch = makeSwitch(duelsSection, "Autoplay", _cfgGet("autoplayOn", false), function(on)
     autoplayOn = on
     duelSg.Enabled = on
@@ -2492,7 +2519,7 @@ local autoplaySwitch = makeSwitch(duelsSection, "Autoplay", _cfgGet("autoplayOn"
 end)
 
 makeLabel(duelsSection, "Auto Left / Right buttons appear at top of screen.")
--- Restore autoplay from config
+
 if _cfgGet("autoplayOn", false) then
     task.defer(function()
         autoplayOn = true
