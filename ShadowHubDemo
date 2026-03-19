@@ -187,7 +187,7 @@ end
 -- TOP BAR
 --------------------------------------------------------
 local topbar = Instance.new("Frame")
-topbar.Size = UDim2.new(1, 0, 0, 48)
+topbar.Size = UDim2.new(1, 0, 0, 54)
 topbar.BackgroundColor3 = Color3.fromRGB(10, 6, 24)
 topbar.BorderSizePixel = 0
 topbar.ZIndex = 5
@@ -219,18 +219,43 @@ alineGrad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(1,   Color3.fromRGB(80, 0, 200)),
 })
 
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -120, 1, 0)
-title.Position = UDim2.new(0, 14, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "Shadow HUB"
-title.Font = Enum.Font.GothamBlack
-title.TextSize = isMobile and 17 or 22
-title.TextColor3 = Color3.fromRGB(220, 200, 255)
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.ZIndex = 6
-title.Parent = topbar
+-- Title — SHADOW HUB + SETTINGS style like reference, with by @un4ig
+local titleMain = Instance.new("TextLabel")
+titleMain.Size = UDim2.new(0, 0, 1, 0)
+titleMain.AutomaticSize = Enum.AutomaticSize.X
+titleMain.Position = UDim2.new(0, 14, 0, 0)
+titleMain.BackgroundTransparency = 1
+titleMain.Text = "SHADOW HUB"
+titleMain.Font = Enum.Font.GothamBlack
+titleMain.TextSize = isMobile and 15 or 18
+titleMain.TextColor3 = Color3.fromRGB(220, 190, 255)
+titleMain.TextXAlignment = Enum.TextXAlignment.Left
+titleMain.ZIndex = 6
+titleMain.Parent = topbar
+
+local titleSub = Instance.new("TextLabel")
+titleSub.Size = UDim2.new(0, 80, 1, 0)
+titleSub.Position = UDim2.new(0, isMobile and 128 or 152, 0, 0)
+titleSub.BackgroundTransparency = 1
+titleSub.Text = "SETTINGS"
+titleSub.Font = Enum.Font.GothamBold
+titleSub.TextSize = isMobile and 9 or 11
+titleSub.TextColor3 = Color3.fromRGB(140, 110, 200)
+titleSub.TextXAlignment = Enum.TextXAlignment.Left
+titleSub.ZIndex = 6
+titleSub.Parent = topbar
+
+local titleBy = Instance.new("TextLabel")
+titleBy.Size = UDim2.new(1, -120, 0, 14)
+titleBy.Position = UDim2.new(0, 14, 1, -16)
+titleBy.BackgroundTransparency = 1
+titleBy.Text = "by @un4ig"
+titleBy.Font = Enum.Font.GothamMedium
+titleBy.TextSize = 9
+titleBy.TextColor3 = Color3.fromRGB(110, 85, 170)
+titleBy.TextXAlignment = Enum.TextXAlignment.Left
+titleBy.ZIndex = 6
+titleBy.Parent = topbar
 
 -- Helper: topbar button
 local function topBtn(xOff, sym, col)
@@ -253,7 +278,14 @@ local function topBtn(xOff, sym, col)
 end
 
 local closeBtn    = topBtn(-36, "×", C.danger)
-local minimizeBtn = topBtn(-72, "−", C.accent2)
+local minimizeBtn = topBtn(-72, "−", Color3.fromRGB(180, 120, 255))
+-- Purple gradient on minimize button
+local minGrad = Instance.new("UIGradient", minimizeBtn)
+minGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(100, 40, 220)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(50,  15, 120)),
+})
+minGrad.Rotation = 135
 
 -- Mobile drag — 1-1 copy of duel button drag (which works)
 if isMobile then
@@ -298,8 +330,8 @@ end
 -- SIDEBAR
 --------------------------------------------------------
 local sidebar = Instance.new("Frame")
-sidebar.Size = UDim2.new(0, SIDE_W, 1, -48)
-sidebar.Position = UDim2.new(0, 0, 0, 48)
+sidebar.Size = UDim2.new(0, SIDE_W, 1, -54)
+sidebar.Position = UDim2.new(0, 0, 0, 54)
 sidebar.BackgroundColor3 = C.sidebar
 sidebar.BorderSizePixel = 0
 sidebar.Parent = main
@@ -324,8 +356,8 @@ Instance.new("UIPadding", sidebar).PaddingTop = UDim.new(0, 8)
 -- CONTENT AREA
 --------------------------------------------------------
 local content = Instance.new("Frame")
-content.Size = UDim2.new(1, -SIDE_W, 1, -48)
-content.Position = UDim2.new(0, SIDE_W, 0, 48)
+content.Size = UDim2.new(1, -SIDE_W, 1, -54)
+content.Position = UDim2.new(0, SIDE_W, 0, 54)
 content.BackgroundTransparency = 1
 content.Parent = main
 
@@ -611,7 +643,7 @@ local homeSection = makeSection("Home")
 local moveSection = makeSection("Movement")
 
 makeTab("Home",     "⌂")
-makeTab("Movement", "⚡")
+makeTab("Movement", "")
 
 switchTab("Home")
 
@@ -820,6 +852,85 @@ local function disableAP()
     apNearestName = "—"; apNearestDist = 0
 end
 
+-- AUTO RETURN TO BRAINROT
+-- Uses PivotTo in a 3-step sequence (like reference script) to bypass anticheat
+do
+    local holdingPrompt  = nil
+    local holdingPos     = nil
+    local stealCompleted = false
+    local returnCooldown = 0
+
+    local function tpTo(pos)
+        local c = player.Character
+        if not c then return end
+        c:PivotTo(CFrame.new(pos))
+        local h = c:FindFirstChild("HumanoidRootPart")
+        if h then h.AssemblyLinearVelocity = Vector3.zero end
+    end
+
+    local function isEnemyPrompt(prompt)
+        local cur = prompt.Parent
+        while cur and cur ~= workspace do
+            if cur.Name == "AnimalPodiums" then return true end
+            cur = cur.Parent
+        end
+        return false
+    end
+
+    local function getPromptPos(prompt)
+        local p = prompt.Parent
+        if p:IsA("Attachment") then return p.WorldPosition end
+        if p:IsA("BasePart")   then return p.Position end
+        return nil
+    end
+
+    ProximityPromptSvc.PromptButtonHoldBegan:Connect(function(prompt, plr)
+        if plr ~= player then return end
+        if not igOn or not apAutoMode then return end
+        if not isEnemyPrompt(prompt) then return end
+        holdingPrompt  = prompt
+        holdingPos     = getPromptPos(prompt)
+        stealCompleted = false
+    end)
+
+    ProximityPromptSvc.PromptTriggered:Connect(function(prompt, plr)
+        if plr ~= player then return end
+        if prompt == holdingPrompt then
+            stealCompleted = true
+            holdingPrompt  = nil
+        end
+    end)
+
+    ProximityPromptSvc.PromptButtonHoldEnded:Connect(function(prompt, plr)
+        if plr ~= player then return end
+        if prompt ~= holdingPrompt then return end
+        if stealCompleted then return end
+        if not igOn or not apAutoMode then return end
+        if tick() - returnCooldown < 1 then return end
+
+        local target = holdingPos
+        holdingPrompt = nil
+        if not target then return end
+        returnCooldown = tick()
+
+        task.spawn(function()
+            task.wait(0.05)
+            -- 3-step sequence like reference script — bypass anticheat
+            local mid = target + Vector3.new(0, 15, 0)
+            tpTo(mid)
+            task.wait(0.1)
+            tpTo(target + Vector3.new(0, 5, 0))
+            task.wait(0.1)
+            tpTo(target + Vector3.new(0, 2, 0))
+        end)
+    end)
+
+    player.CharacterAdded:Connect(function()
+        holdingPrompt  = nil
+        holdingPos     = nil
+        stealCompleted = false
+    end)
+end
 
 local hudFrame = Instance.new("Frame")
 hudFrame.Size             = UDim2.new(0, 270, 0, 72)
@@ -1717,7 +1828,7 @@ end
 -- DUELS SECTION
 --------------------------------------------------------
 local duelsSection = makeSection("Duels")
-makeTab("Duels", "⚔")
+makeTab("Duels", "")
 
 makeHeader(duelsSection, "Duels")
 
