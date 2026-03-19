@@ -115,9 +115,9 @@ mainGrad.Color = ColorSequence.new({
 })
 mainGrad.Rotation = 135
 
--- FALLING DOTS — TweenService only, no Heartbeat loop = zero FPS impact
+-- FALLING DOTS — task.delay loop, no Heartbeat, no event leaks
 task.spawn(function()
-    local DOT_COUNT = 14  -- fewer dots, same visual
+    local DOT_COUNT = 16
     local overlay = Instance.new("Frame")
     overlay.Size = UDim2.new(1, 0, 1, 0)
     overlay.BackgroundTransparency = 1
@@ -127,20 +127,20 @@ task.spawn(function()
     overlay.Active = false
     overlay.Parent = main
 
-    local function animateDot(dot)
-        if not dot or not dot.Parent then return end
-        local x     = math.random(1, 99) / 100
-        local dur   = math.random(60, 130) / 10  -- 6–13s, very slow
-        local alpha = math.random(20, 50) / 100
-        dot.BackgroundTransparency = alpha
-        dot.Position = UDim2.new(x, 0, -0.05, 0)
-        local t = TweenService:Create(dot,
-            TweenInfo.new(dur, Enum.EasingStyle.Linear),
-            {Position = UDim2.new(x, 0, 1.05, 0), BackgroundTransparency = 0.95}
-        )
-        t:Play()
-        t.Completed:Connect(function()
-            animateDot(dot)
+    local function loopDot(dot)
+        task.spawn(function()
+            while dot and dot.Parent do
+                local x   = math.random(2, 98) / 100
+                local dur = math.random(5, 12)
+                local alpha = math.random(20, 55) / 100
+                dot.BackgroundTransparency = alpha
+                dot.Position = UDim2.new(x, 0, -0.04, 0)
+                TweenService:Create(dot,
+                    TweenInfo.new(dur, Enum.EasingStyle.Linear),
+                    {Position = UDim2.new(x, 0, 1.04, 0)}
+                ):Play()
+                task.wait(dur)
+            end
         end)
     end
 
@@ -152,12 +152,13 @@ task.spawn(function()
         dot.ZIndex = 4
         dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         dot.BackgroundTransparency = 0.5
-        dot.Position = UDim2.new(math.random(1,99)/100, 0, math.random(0,100)/100, 0)
+        -- Spread initial Y so they don't all start from top
+        dot.Position = UDim2.new(math.random(2,98)/100, 0, math.random(0,100)/100, 0)
         Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
         dot.Parent = overlay
-        -- Stagger start so they don't all reset at once
-        task.delay(i * 0.4, function()
-            animateDot(dot)
+        -- Stagger starts
+        task.delay(i * 0.5, function()
+            loopDot(dot)
         end)
     end
 end)
@@ -444,9 +445,10 @@ local function switchTab(name)
                 local btnH    = tabBtns[name].btn.AbsoluteSize.Y
                 local indH    = sharedInd.AbsoluteSize.Y
                 local newY    = (btnAbs.Y - mainAbs.Y) + math.floor((btnH - indH) / 2)
+                local newX    = btnAbs.X - mainAbs.X  -- left edge of the button
                 TweenService:Create(sharedInd,
                     TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-                    {Position = UDim2.new(0, 0, 0, newY)}
+                    {Position = UDim2.new(0, newX, 0, newY)}
                 ):Play()
             end)
         end
@@ -462,26 +464,20 @@ local function makeTab(name, icon)
     btn.Parent = sidebar
     corner(btn, 8)
 
-    local ico = Instance.new("TextLabel", btn)
-    ico.Size = UDim2.new(0, 20, 1, 0)
-    ico.Position = UDim2.new(0, 10, 0, 0)
-    ico.BackgroundTransparency = 1
-    ico.Text = icon
-    ico.Font = Enum.Font.GothamBold
-    ico.TextSize = 14
-    ico.TextColor3 = C.sub
-
     local lbl = Instance.new("TextLabel", btn)
-    lbl.Size = UDim2.new(1, -34, 1, 0)
-    lbl.Position = UDim2.new(0, 32, 0, 0)
+    lbl.Size = UDim2.new(1, -16, 1, 0)
+    lbl.Position = UDim2.new(0, 16, 0, 0)
     lbl.BackgroundTransparency = 1
-    lbl.Text = "• " .. name   -- bullet dot
+    lbl.Text = "• " .. name
     lbl.Font = Enum.Font.GothamSemibold
     lbl.TextSize = isMobile and 11 or 12
     lbl.TextColor3 = C.sub
     lbl.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Dummy ind for compat (not visible — sharedInd handles display)
+    -- ico kept for compat with switchTab
+    local ico = lbl
+
+    -- Dummy ind for compat
     local ind = Instance.new("Frame", btn)
     ind.Size = UDim2.new(0, 0, 0, 0)
     ind.BackgroundTransparency = 1
@@ -489,23 +485,32 @@ local function makeTab(name, icon)
 
     tabBtns[name] = {btn = btn, ind = ind, lbl = lbl, ico = ico}
 
-    -- Create shared indicator on first tab — parent to main so UIListLayout doesn't affect it
+    -- Create shared indicator once — inside sidebar but excluded from layout via Size 0 wrapper
     if not sharedInd then
+        -- Wrapper with 0 height so UIListLayout ignores it
+        local wrapper = Instance.new("Frame")
+        wrapper.Size = UDim2.new(1, 0, 0, 0)
+        wrapper.BackgroundTransparency = 1
+        wrapper.BorderSizePixel = 0
+        wrapper.ClipsDescendants = false
+        wrapper.Parent = sidebar
+
         sharedInd = Instance.new("Frame")
         sharedInd.Size = UDim2.new(0, 3, 0, isMobile and 22 or 24)
-        sharedInd.Position = UDim2.new(0, 0, 0, 54 + 8)  -- below topbar
+        sharedInd.Position = UDim2.new(0, 0, 0, 0)
         sharedInd.BackgroundColor3 = Color3.fromRGB(180, 60, 255)
         sharedInd.BorderSizePixel = 0
         sharedInd.ZIndex = 10
-        sharedInd.Parent = main  -- NOT sidebar — avoids UIListLayout pushing tabs
+        sharedInd.ClipsDescendants = false
+        sharedInd.Parent = main  -- parent to main, positioned absolutely
         corner(sharedInd, 2)
-        local sg2 = Instance.new("UIGradient", sharedInd)
-        sg2.Color = ColorSequence.new({
+        local indGrad = Instance.new("UIGradient", sharedInd)
+        indGrad.Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0,   Color3.fromRGB(200, 60, 255)),
             ColorSequenceKeypoint.new(0.5, Color3.fromRGB(130, 80, 255)),
             ColorSequenceKeypoint.new(1,   Color3.fromRGB(40,  170, 255)),
         })
-        sg2.Rotation = 90
+        indGrad.Rotation = 90
     end
 
     btn.MouseButton1Click:Connect(function() switchTab(name) end)
@@ -703,7 +708,8 @@ task.defer(function()
         local btnH    = tabBtns["Home"].btn.AbsoluteSize.Y
         local indH    = sharedInd.AbsoluteSize.Y
         local initY   = (btnAbs.Y - mainAbs.Y) + math.floor((btnH - indH) / 2)
-        sharedInd.Position = UDim2.new(0, 0, 0, initY)
+        local initX   = btnAbs.X - mainAbs.X
+        sharedInd.Position = UDim2.new(0, initX, 0, initY)
     end
 end)
 
