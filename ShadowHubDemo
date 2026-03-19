@@ -1,6 +1,7 @@
 --[[
     Shadow HUB - Clean v3
     No background loops. No VFX. No crashes.
+    Build: 2025-03-19-v4
 ]]
 
 local Players          = game:GetService("Players")
@@ -485,24 +486,15 @@ local function makeTab(name, icon)
 
     tabBtns[name] = {btn = btn, ind = ind, lbl = lbl, ico = ico}
 
-    -- Create shared indicator once — inside sidebar but excluded from layout via Size 0 wrapper
+    -- Create shared indicator once — parented to main, positioned absolutely
     if not sharedInd then
-        -- Wrapper with 0 height so UIListLayout ignores it
-        local wrapper = Instance.new("Frame")
-        wrapper.Size = UDim2.new(1, 0, 0, 0)
-        wrapper.BackgroundTransparency = 1
-        wrapper.BorderSizePixel = 0
-        wrapper.ClipsDescendants = false
-        wrapper.Parent = sidebar
-
         sharedInd = Instance.new("Frame")
         sharedInd.Size = UDim2.new(0, 3, 0, isMobile and 22 or 24)
         sharedInd.Position = UDim2.new(0, 0, 0, 0)
         sharedInd.BackgroundColor3 = Color3.fromRGB(180, 60, 255)
         sharedInd.BorderSizePixel = 0
         sharedInd.ZIndex = 10
-        sharedInd.ClipsDescendants = false
-        sharedInd.Parent = main  -- parent to main, positioned absolutely
+        sharedInd.Parent = main
         corner(sharedInd, 2)
         local indGrad = Instance.new("UIGradient", sharedInd)
         indGrad.Color = ColorSequence.new({
