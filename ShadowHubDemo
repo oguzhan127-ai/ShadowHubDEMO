@@ -1564,7 +1564,7 @@ do
         if inp.UserInputType == Enum.UserInputType.MouseButton1
         or inp.UserInputType == Enum.UserInputType.Touch then
             lDragging   = true
-            lHasDragged = false
+            lHasDragged = false  -- always reset on new press
             lTouchId    = inp
             lDragStart  = Vector2.new(inp.Position.X, inp.Position.Y)
             lCardStart  = lCard.Position
@@ -1593,16 +1593,19 @@ do
     lHit.InputEnded:Connect(function(inp)
         if inp == lTouchId then
             lDragging = false
+            -- Only toggle if this was a tap, not a drag
             if not lHasDragged then
                 setLockActive(not lActive)
             end
+            -- Reset flag AFTER the click fires so MouseButton1Click also gets clean state
+            task.defer(function() lHasDragged = false end)
         end
     end)
 
+    -- PC: MouseButton1Click fires after InputEnded, so check flag before defer clears it
     lHit.MouseButton1Click:Connect(function()
-        if not lHasDragged then
-            setLockActive(not lActive)
-        end
+        -- lHasDragged is still true here if dragged; defer above will clear it after
+        -- So we do nothing here — InputEnded handles the toggle for both PC and mobile
     end)
 
     -- Slide-in: always from top, lands at last saved position
@@ -1626,8 +1629,9 @@ do
         lPosOffY   = LB_DEF_OY
         lCard.Position = UDim2.new(lPosScaleX, lPosOffX, lPosScaleY, lPosOffY)
     end
-    -- Store for reset button access
+    -- Store for reset button access and doClose
     toggleSetters._resetLockPos = resetLockPosition
+    toggleSetters._lockSg = lockSg
 
     -- Expose current position for getData() in save config
     toggleSetters._getLockPos = function()
@@ -2532,8 +2536,10 @@ local function doClose()
     }):Play()
     task.delay(0.3, function()
         if sg and sg.Parent then sg:Destroy() end
-        if sg and sg.Parent then sg:Destroy() end
         if duelSg and duelSg.Parent then duelSg:Destroy() end
+        if toggleSetters._lockSg and toggleSetters._lockSg.Parent then
+            toggleSetters._lockSg:Destroy()
+        end
     end)
 end
 
