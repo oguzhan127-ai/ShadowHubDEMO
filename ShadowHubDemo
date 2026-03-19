@@ -1456,20 +1456,19 @@ do
     local lCard = Instance.new("Frame", lockSg)
     lCard.Size             = UDim2.new(0, LBW, 0, LBH)
     lCard.Position         = UDim2.new(lPosScaleX, lPosOffX, lPosScaleY, lPosOffY)
-    lCard.BackgroundColor3 = Color3.fromRGB(18, 12, 36)
+    lCard.BackgroundColor3 = Color3.fromRGB(12, 8, 26)
     lCard.BorderSizePixel  = 0
     lCard.ZIndex           = 2
     corner(lCard, 14)
-    local lCardStroke = stroke(lCard, Color3.fromRGB(110, 55, 210), 1.5, 0.35)
+    local lCardStroke = stroke(lCard, Color3.fromRGB(80, 40, 160), 1.5, 0.7)
 
-    -- Card gradient
+    -- Card gradient — matches row style
     local lGrad = Instance.new("UIGradient", lCard)
     lGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0,   Color3.fromRGB(38, 20, 72)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(20, 12, 44)),
-        ColorSequenceKeypoint.new(1,   Color3.fromRGB(10,  6, 24)),
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(18, 10, 40)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(8,  5,  18)),
     })
-    lGrad.Rotation = 145
+    lGrad.Rotation = 135
 
     -- Thin left accent bar (like reference image — vertical purple bar on left)
     local lAccBar = Instance.new("Frame", lCard)
@@ -1539,8 +1538,8 @@ do
                 or  Color3.fromRGB(65, 50, 95)
         }):Play()
         TweenService:Create(lCardStroke, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            Color        = v and Color3.fromRGB(70, 215, 110) or Color3.fromRGB(110, 55, 210),
-            Transparency = v and 0.05 or 0.35
+            Color        = v and Color3.fromRGB(70, 215, 110) or Color3.fromRGB(80, 40, 160),
+            Transparency = v and 0.05 or 0.7
         }):Play()
         TweenService:Create(lLblTop, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {
             TextColor3 = v and Color3.fromRGB(130, 255, 175) or Color3.fromRGB(210, 185, 255)
@@ -1697,19 +1696,18 @@ do
     local dCard = Instance.new("Frame", dropSg)
     dCard.Size             = UDim2.new(0, DBW2, 0, DBH2)
     dCard.Position         = UDim2.new(dPosScaleX, dPosOffX, dPosScaleY, dPosOffY)
-    dCard.BackgroundColor3 = Color3.fromRGB(18, 12, 36)
+    dCard.BackgroundColor3 = Color3.fromRGB(12, 8, 26)
     dCard.BorderSizePixel  = 0
     dCard.ZIndex           = 2
     corner(dCard, 14)
-    local dCardStroke = stroke(dCard, Color3.fromRGB(110, 55, 210), 1.5, 0.35)
+    local dCardStroke = stroke(dCard, Color3.fromRGB(80, 40, 160), 1.5, 0.7)
 
     local dGrad = Instance.new("UIGradient", dCard)
     dGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0,   Color3.fromRGB(38, 20, 72)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(20, 12, 44)),
-        ColorSequenceKeypoint.new(1,   Color3.fromRGB(10,  6, 24)),
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(18, 10, 40)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(8,  5,  18)),
     })
-    dGrad.Rotation = 145
+    dGrad.Rotation = 135
 
     -- Left accent bar
     local dAccBar = Instance.new("Frame", dCard)
@@ -1796,8 +1794,8 @@ do
                 BackgroundColor3 = Color3.fromRGB(65, 50, 95)
             }):Play()
             TweenService:Create(dCardStroke, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-                Color        = Color3.fromRGB(110, 55, 210),
-                Transparency = 0.35
+                Color        = Color3.fromRGB(80, 40, 160),
+                Transparency = 0.7
             }):Play()
             TweenService:Create(dLblTop, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
                 TextColor3 = Color3.fromRGB(210, 185, 255)
