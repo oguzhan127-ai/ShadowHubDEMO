@@ -1637,27 +1637,31 @@ do
     end
 
     -- Toggle in Movement menu — shows/hides the floating card
-    local abSwitch = makeSwitch(moveSection, "Lock", false, function(on)
+    local abSwitch = makeSwitch(moveSection, "Lock", _cfgGet("lockOn", false), function(on)
         if on then
             lockSg.Enabled = true
             task.delay(0.05, slideInLock)
         else
             if lActive then setLockActive(false) end
-            -- Slide out upward from current position
             TweenService:Create(lCard,
                 TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
                 {Position = UDim2.new(lCard.Position.X.Scale, lCard.Position.X.Offset, 0, -LBH - 20)}
             ):Play()
             task.delay(0.22, function()
                 lockSg.Enabled = false
-                -- Restore position so next slide-in goes to right place
                 lCard.Position = UDim2.new(lPosScaleX, lPosOffX, lPosScaleY, lPosOffY)
             end)
         end
     end)
-    toggleSetters.abOn = function(v) abSwitch.set(v, true) end
+    if _cfgGet("lockOn", false) then
+        task.defer(function()
+            lockSg.Enabled = true
+            slideInLock()
+        end)
+    end
+    toggleSetters.abOn   = function(v) abSwitch.set(v, true) end
+    toggleSetters.lockOn = function(v) abSwitch.set(v, true) end
 
-    makeLabel(moveSection, "Shows a floating Lock Player button.")
 end
 
 -- DROP BRAINROT — floating card, same style as Lock
@@ -1678,15 +1682,23 @@ do
     local dPosScaleY = _cfgGet("dropPosScaleY", DB_DEF_SY)
     local dPosOffY   = _cfgGet("dropPosOffY",   DB_DEF_OY)
 
-    -- K7 doDrop — 1-1 copy
+    -- K7 doDrop fixed — no upward launch, just cleanly zero velocity then drop
+    -- The Y=125 launch in K7 causes the float/fall issue on anticheat servers
+    -- Instead: zero all velocity first, wait 1 frame, then small downward push
+    -- The brainrot releases because we're moving and the server detects the drop
     local function doDrop()
         local char = player.Character
         if not char then return end
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-        hrp.AssemblyLinearVelocity = Vector3.new(0, 125, 0)
-        task.wait(0.4)
-        hrp.AssemblyLinearVelocity = Vector3.new(0, -600, 0)
+        -- Zero velocity so we don't fly up
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        task.wait(0.05)
+        -- Small downward push to trigger drop detection server-side
+        hrp.AssemblyLinearVelocity = Vector3.new(0, -80, 0)
+        task.wait(0.15)
+        -- Back to zero so we land normally
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
     end
 
     -- Card
@@ -1863,8 +1875,8 @@ do
         ):Play()
     end
 
-    -- Toggle in menu
-    makeSwitch(moveSection, "Drop Brainrot", false, function(on)
+    -- Toggle in menu — store reference for save/reset
+    local dropSwitch = makeSwitch(moveSection, "Drop Brainrot", _cfgGet("dropOn", false), function(on)
         if on then
             dropSg.Enabled = true
             task.delay(0.05, slideInDrop)
@@ -1879,14 +1891,22 @@ do
             end)
         end
     end)
-
-    makeLabel(moveSection, "Tap to drop the brainrot you're carrying.")
+    if _cfgGet("dropOn", false) then
+        task.defer(function()
+            dropSg.Enabled = true
+            slideInDrop()
+        end)
+    end
 
     -- Expose for save config and doClose
-    toggleSetters._getDropPos = function()
-        return dPosScaleX, dPosOffX, dPosScaleY, dPosOffY
+    toggleSetters._getDropPos  = function() return dPosScaleX, dPosOffX, dPosScaleY, dPosOffY end
+    toggleSetters._dropSg      = dropSg
+    toggleSetters._resetDropPos = function()
+        dPosScaleX = DB_DEF_SX; dPosOffX = DB_DEF_OX
+        dPosScaleY = DB_DEF_SY; dPosOffY = DB_DEF_OY
+        dCard.Position = UDim2.new(dPosScaleX, dPosOffX, dPosScaleY, dPosOffY)
     end
-    toggleSetters._dropSg = dropSg
+    toggleSetters.dropOn = function(v) dropSwitch.set(v, true) end
 end
 
 makeHeader(moveSection, "Speed")
@@ -2238,17 +2258,21 @@ do
         if ssVbox     then ssVbox.Text     = tostring(STEAL_SPEED_VAL) end
         if igVbox     then igVbox.Text     = tostring(IG_DELAY) end
 
-        -- Reset lock button position to default
+        -- Reset lock + drop positions to default
         if toggleSetters._resetLockPos then toggleSetters._resetLockPos() end
+        if toggleSetters._resetDropPos then toggleSetters._resetDropPos() end
 
         disableIJ(); disableAR(); disableSB(); disableSS(); disableIG()
 
         task.defer(function()
             ijSwitch.set(true, true); enableIJ()
             arSwitch.set(true, true); enableAR()
-            if toggleSetters.sbOn then toggleSetters.sbOn(true) end
-            if toggleSetters.ssOn then toggleSetters.ssOn(true) end
-            if toggleSetters.igOn then toggleSetters.igOn(true) end
+            if toggleSetters.sbOn   then toggleSetters.sbOn(true)   end
+            if toggleSetters.ssOn   then toggleSetters.ssOn(true)   end
+            if toggleSetters.igOn   then toggleSetters.igOn(true)   end
+            -- Lock and Drop stay ON at default position
+            if toggleSetters.lockOn then toggleSetters.lockOn(true)  end
+            if toggleSetters.dropOn then toggleSetters.dropOn(true)  end
         end)
 
         tw(resetBtn, 0.1, {BackgroundColor3 = Color3.fromRGB(35, 18, 75)})
@@ -2292,6 +2316,8 @@ do
             sbOn            = sbOn,
             ssOn            = ssOn,
             autoplayOn      = autoplayOn,
+            lockOn          = toggleSetters._lockSg and toggleSetters._lockSg.Enabled or false,
+            dropOn          = toggleSetters._dropSg and toggleSetters._dropSg.Enabled or false,
             lockPosScaleX   = lpsx,
             lockPosOffX     = lpox,
             lockPosScaleY   = lpsy,
