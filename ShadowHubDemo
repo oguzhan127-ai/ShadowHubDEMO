@@ -439,14 +439,14 @@ local function switchTab(name)
         if sharedInd then
             task.spawn(function()
                 task.wait()
-                local btnAbsPos  = tabBtns[name].btn.AbsolutePosition
-                local mainAbsPos = main.AbsolutePosition
-                local relY = btnAbsPos.Y - mainAbsPos.Y
-                local btnH = tabBtns[name].btn.AbsoluteSize.Y
-                local indH = sharedInd.AbsoluteSize.Y
+                local btnAbs  = tabBtns[name].btn.AbsolutePosition
+                local mainAbs = main.AbsolutePosition
+                local btnH    = tabBtns[name].btn.AbsoluteSize.Y
+                local indH    = sharedInd.AbsoluteSize.Y
+                local newY    = (btnAbs.Y - mainAbs.Y) + math.floor((btnH - indH) / 2)
                 TweenService:Create(sharedInd,
                     TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-                    {Position = UDim2.new(0, 0, 0, relY + math.floor((btnH - indH) / 2))}
+                    {Position = UDim2.new(0, 0, 0, newY)}
                 ):Play()
             end)
         end
@@ -698,12 +698,12 @@ switchTab("Home")
 -- Position shared indicator on first tab after layout resolves
 task.defer(function()
     if sharedInd and tabBtns["Home"] then
-        local btnAbsPos  = tabBtns["Home"].btn.AbsolutePosition
-        local mainAbsPos = main.AbsolutePosition
-        local relY = btnAbsPos.Y - mainAbsPos.Y
-        local btnH = tabBtns["Home"].btn.AbsoluteSize.Y
-        local indH = sharedInd.AbsoluteSize.Y
-        sharedInd.Position = UDim2.new(0, 0, 0, relY + math.floor((btnH - indH) / 2))
+        local btnAbs  = tabBtns["Home"].btn.AbsolutePosition
+        local mainAbs = main.AbsolutePosition
+        local btnH    = tabBtns["Home"].btn.AbsoluteSize.Y
+        local indH    = sharedInd.AbsoluteSize.Y
+        local initY   = (btnAbs.Y - mainAbs.Y) + math.floor((btnH - indH) / 2)
+        sharedInd.Position = UDim2.new(0, 0, 0, initY)
     end
 end)
 
@@ -1058,7 +1058,7 @@ corner(hudBarFill, 4)
 local hudVisible = false
 task.spawn(function()
     while hudSg and hudSg.Parent do
-        task.wait(0.05)
+        task.wait(0.1)
         if igOn and apAutoMode then
             -- Slide in
             if not hudVisible then
@@ -1977,13 +1977,17 @@ end
 
 local stealRadius = 7  -- doc6 exact
 
+local _igFrame = 0
 RunService.Heartbeat:Connect(function()
     if not instaGrab then return end
+    _igFrame += 1
+    if _igFrame < 5 then return end
+    _igFrame = 0
     local r = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not r then return end
     for _, v in pairs(workspace:GetDescendants()) do
         if v:IsA("ProximityPrompt") then
-            local p   = v.Parent
+            local p    = v.Parent
             local pos2 = p:IsA("Attachment") and p.WorldPosition or p.Position
             if pos2 and (pos2 - r.Position).Magnitude < stealRadius then
                 buildCallbacks(v)
