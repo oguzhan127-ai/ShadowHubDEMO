@@ -115,10 +115,9 @@ mainGrad.Color = ColorSequence.new({
 })
 mainGrad.Rotation = 135
 
--- FALLING DOTS ANIMATION
--- Dots float in a transparent overlay on top of everything
+-- FALLING DOTS — TweenService only, no Heartbeat loop = zero FPS impact
 task.spawn(function()
-    local DOT_COUNT = 22
+    local DOT_COUNT = 14  -- fewer dots, same visual
     local overlay = Instance.new("Frame")
     overlay.Size = UDim2.new(1, 0, 1, 0)
     overlay.BackgroundTransparency = 1
@@ -128,47 +127,39 @@ task.spawn(function()
     overlay.Active = false
     overlay.Parent = main
 
-    local dotData = {}
+    local function animateDot(dot)
+        if not dot or not dot.Parent then return end
+        local x     = math.random(1, 99) / 100
+        local dur   = math.random(60, 130) / 10  -- 6–13s, very slow
+        local alpha = math.random(20, 50) / 100
+        dot.BackgroundTransparency = alpha
+        dot.Position = UDim2.new(x, 0, -0.05, 0)
+        local t = TweenService:Create(dot,
+            TweenInfo.new(dur, Enum.EasingStyle.Linear),
+            {Position = UDim2.new(x, 0, 1.05, 0), BackgroundTransparency = 0.95}
+        )
+        t:Play()
+        t.Completed:Connect(function()
+            animateDot(dot)
+        end)
+    end
 
     for i = 1, DOT_COUNT do
-        local size = math.random(2, 5)
+        local size = math.random(2, 4)
         local dot = Instance.new("Frame")
         dot.Size = UDim2.new(0, size, 0, size)
         dot.BorderSizePixel = 0
         dot.ZIndex = 4
         dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        dot.BackgroundTransparency = 0.5
+        dot.Position = UDim2.new(math.random(1,99)/100, 0, math.random(0,100)/100, 0)
         Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
         dot.Parent = overlay
-
-        local speed = math.random(2, 5) / 1000  -- much slower
-        local x     = math.random(1, 99) / 100
-        local y     = math.random(0, 100) / 100
-        local alpha = math.random(20, 45) / 100
-        dot.Position = UDim2.new(x, 0, y, 0)
-        dot.BackgroundTransparency = alpha
-        dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-
-        dotData[i] = { dot = dot, x = x, y = y, speed = speed, alpha = alpha }
+        -- Stagger start so they don't all reset at once
+        task.delay(i * 0.4, function()
+            animateDot(dot)
+        end)
     end
-
-    local frameSkip = 0
-    RunService.Heartbeat:Connect(function()
-        if not main or not main.Parent then return end
-        frameSkip += 1
-        if frameSkip < 3 then return end
-        frameSkip = 0
-        for _, d in ipairs(dotData) do
-            d.y = d.y + d.speed * 3
-            if d.y > 1.05 then
-                d.y = -0.03
-                d.x = math.random(1, 99) / 100
-                d.speed = math.random(2, 5) / 1000
-                d.alpha = math.random(20, 45) / 100
-                d.dot.BackgroundTransparency = d.alpha
-            end
-            d.dot.Position = UDim2.new(d.x, 0, d.y, 0)
-        end
-    end)
 end)
 
 
@@ -449,8 +440,8 @@ local function switchTab(name)
             task.spawn(function()
                 task.wait()
                 local btnAbsPos  = tabBtns[name].btn.AbsolutePosition
-                local sideAbsPos = sidebar.AbsolutePosition
-                local relY = btnAbsPos.Y - sideAbsPos.Y
+                local mainAbsPos = main.AbsolutePosition
+                local relY = btnAbsPos.Y - mainAbsPos.Y
                 local btnH = tabBtns[name].btn.AbsoluteSize.Y
                 local indH = sharedInd.AbsoluteSize.Y
                 TweenService:Create(sharedInd,
@@ -498,15 +489,15 @@ local function makeTab(name, icon)
 
     tabBtns[name] = {btn = btn, ind = ind, lbl = lbl, ico = ico}
 
-    -- Create shared indicator on first tab
+    -- Create shared indicator on first tab — parent to main so UIListLayout doesn't affect it
     if not sharedInd then
         sharedInd = Instance.new("Frame")
         sharedInd.Size = UDim2.new(0, 3, 0, isMobile and 22 or 24)
-        sharedInd.Position = UDim2.new(0, 0, 0, 8)
+        sharedInd.Position = UDim2.new(0, 0, 0, 54 + 8)  -- below topbar
         sharedInd.BackgroundColor3 = Color3.fromRGB(180, 60, 255)
         sharedInd.BorderSizePixel = 0
-        sharedInd.ZIndex = 5
-        sharedInd.Parent = sidebar
+        sharedInd.ZIndex = 10
+        sharedInd.Parent = main  -- NOT sidebar — avoids UIListLayout pushing tabs
         corner(sharedInd, 2)
         local sg2 = Instance.new("UIGradient", sharedInd)
         sg2.Color = ColorSequence.new({
@@ -708,8 +699,8 @@ switchTab("Home")
 task.defer(function()
     if sharedInd and tabBtns["Home"] then
         local btnAbsPos  = tabBtns["Home"].btn.AbsolutePosition
-        local sideAbsPos = sidebar.AbsolutePosition
-        local relY = btnAbsPos.Y - sideAbsPos.Y
+        local mainAbsPos = main.AbsolutePosition
+        local relY = btnAbsPos.Y - mainAbsPos.Y
         local btnH = tabBtns["Home"].btn.AbsoluteSize.Y
         local indH = sharedInd.AbsoluteSize.Y
         sharedInd.Position = UDim2.new(0, 0, 0, relY + math.floor((btnH - indH) / 2))
