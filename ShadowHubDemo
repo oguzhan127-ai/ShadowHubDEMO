@@ -1394,7 +1394,7 @@ if _cfgGet("arOn", false) then task.defer(function() enableAR() end) end
 makeLabel(moveSection, "Blocks ragdoll, fling, and joint breaks.")
 
 -- AIMBOT
-makeHeader(moveSection, "Aimbot")
+makeHeader(moveSection, "Lock")
 
 do
     local abOn       = false
@@ -1488,12 +1488,12 @@ do
         if abCharConn then abCharConn:Disconnect(); abCharConn = nil end
     end
 
-    local abSwitch = makeSwitch(moveSection, "Aimbot", false, function(on)
+    local abSwitch = makeSwitch(moveSection, "Lock", false, function(on)
         if on then enableAB() else disableAB() end
     end)
     toggleSetters.abOn = function(v) abSwitch.set(v, true) end
 
-    makeLabel(moveSection, "Flies body toward nearest player. No CFrame = no anticheat.")
+    makeLabel(moveSection, "Locks onto nearest player.")
 end
 
 makeHeader(moveSection, "Speed")
