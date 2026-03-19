@@ -1397,10 +1397,12 @@ makeLabel(moveSection, "Blocks ragdoll, fling, and joint breaks.")
 makeHeader(moveSection, "Aimbot")
 
 do
-    local abOn      = false
-    local abConn    = nil
-    local abTarget  = nil
-    local abAlpha   = 0.08  -- smoothness (lower = smoother)
+    local abOn        = false
+    local abTarget    = nil
+    local abAttach    = nil  -- Attachment for AlignOrientation
+    local abAlign     = nil  -- AlignOrientation constraint
+    local abConn      = nil  -- Heartbeat for target tracking + angle update
+    local abCharConn  = nil
 
     local function pickTarget()
         local char = player.Character
@@ -1422,17 +1424,46 @@ do
         return best
     end
 
+    local function setupConstraint(char)
+        -- Clean old
+        if abAttach then pcall(function() abAttach:Destroy() end) end
+        if abAlign  then pcall(function() abAlign:Destroy()  end) end
+
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local hum  = char and char:FindFirstChildOfClass("Humanoid")
+        if not root or not hum then return end
+
+        -- Disable AutoRotate so Roblox stops overriding our rotation
+        hum.AutoRotate = false
+
+        -- Create attachment on root
+        abAttach = Instance.new("Attachment")
+        abAttach.Name = "AimbotAttach"
+        abAttach.Parent = root
+
+        -- AlignOrientation — physics-based rotation, anticheat sees it as normal physics
+        abAlign = Instance.new("AlignOrientation")
+        abAlign.Name           = "AimbotAlign"
+        abAlign.Mode           = Enum.OrientationAlignmentMode.OneAttachment
+        abAlign.Attachment0    = abAttach
+        abAlign.RigidityEnabled = false
+        abAlign.Responsiveness = 10  -- lower = smoother
+        abAlign.MaxTorque      = 2e5
+        abAlign.Parent         = root
+    end
+
     local function enableAB()
         if abOn then return end
         abOn = true
         abTarget = pickTarget()
 
+        setupConstraint(player.Character)
+
         abConn = RunService.Heartbeat:Connect(function()
             if not abOn then return end
             local char = player.Character
             local root = char and char:FindFirstChild("HumanoidRootPart")
-            local hum  = char and char:FindFirstChildOfClass("Humanoid")
-            if not root or not hum then return end
+            if not root or not abAlign then return end
 
             -- Re-pick target if gone
             if not abTarget or not abTarget.Character
@@ -1444,38 +1475,35 @@ do
             local targetRoot = abTarget.Character:FindFirstChild("HumanoidRootPart")
             if not targetRoot then return end
 
-            local targetPos = targetRoot.Position
-            local myPos     = root.Position
-
-            -- Direction to target, flat (horizontal only, no Y tilt)
-            local flat = Vector3.new(targetPos.X - myPos.X, 0, targetPos.Z - myPos.Z)
+            local myPos  = root.Position
+            local tgtPos = targetRoot.Position
+            local flat   = Vector3.new(tgtPos.X - myPos.X, 0, tgtPos.Z - myPos.Z)
             if flat.Magnitude < 0.5 then return end
 
-            -- Target CFrame looking at enemy, horizontal only
-            local lookCF = CFrame.new(myPos, myPos + flat.Unit)
+            -- Set CFrame of the AlignOrientation target — horizontal only
+            abAlign.CFrame = CFrame.new(Vector3.zero, flat.Unit)
+        end)
 
-            -- Get current and target Y angles
-            local _, curY, _ = root.CFrame:ToEulerAnglesYXZ()
-            local _, tgtY, _ = lookCF:ToEulerAnglesYXZ()
-
-            -- Wrap difference to -π..π for shortest path
-            local diff = tgtY - curY
-            if diff >  math.pi then diff = diff - math.pi * 2 end
-            if diff < -math.pi then diff = diff + math.pi * 2 end
-
-            local newY = curY + diff * abAlpha
-
-            -- Apply rotation only, restore velocity so movement isn't affected
-            local vel = root.AssemblyLinearVelocity
-            root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, newY, 0)
-            root.AssemblyLinearVelocity = vel
+        -- Re-setup on respawn
+        abCharConn = player.CharacterAdded:Connect(function(char)
+            task.wait(1)
+            if abOn then
+                setupConstraint(char)
+                abTarget = pickTarget()
+            end
         end)
     end
 
     local function disableAB()
         abOn = false
         abTarget = nil
-        if abConn then abConn:Disconnect(); abConn = nil end
+        if abConn     then abConn:Disconnect();     abConn     = nil end
+        if abCharConn then abCharConn:Disconnect(); abCharConn = nil end
+        if abAttach   then pcall(function() abAttach:Destroy() end); abAttach = nil end
+        if abAlign    then pcall(function() abAlign:Destroy()  end); abAlign  = nil end
+        -- Re-enable AutoRotate
+        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.AutoRotate = true end
     end
 
     local abSwitch = makeSwitch(moveSection, "Aimbot", false, function(on)
