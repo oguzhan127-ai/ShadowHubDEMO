@@ -1899,6 +1899,116 @@ do
     toggleSetters.dropOn = function(v) dropSwitch.set(v, true) end
 end
 
+
+-- MELEE AIMBOT
+-- Locks body rotation toward 1 target using Heartbeat CFrame Y-only.
+-- Works while walking — position never touched, only Y angle.
+-- Target picked once on enable, stays locked.
+do
+    local maOn       = false
+    local maConn     = nil
+    local maCharConn = nil
+    local maTarget   = nil
+
+    local function maPickTarget()
+        local char = player.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then return nil end
+        local best, bestDist = nil, math.huge
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= player and p.Character then
+                local hr = p.Character:FindFirstChild("HumanoidRootPart")
+                if hr then
+                    local dist = (hr.Position - root.Position).Magnitude
+                    if dist < bestDist then bestDist = dist; best = p end
+                end
+            end
+        end
+        return best
+    end
+
+    local function enableMA()
+        if maOn then return end
+        maOn = true
+        -- Pick once, stays locked
+        maTarget = maPickTarget()
+
+        maConn = RunService.Heartbeat:Connect(function()
+            if not maOn then return end
+            local char = player.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+
+            -- If target gone, pick new one
+            if not maTarget or not maTarget.Character
+            or not maTarget.Character:FindFirstChild("HumanoidRootPart") then
+                maTarget = maPickTarget()
+                if not maTarget then
+                    root.AssemblyAngularVelocity = Vector3.zero
+                    return
+                end
+            end
+
+            local targetRoot = maTarget.Character:FindFirstChild("HumanoidRootPart")
+            if not targetRoot then return end
+
+            -- Flat direction to target
+            local dir = Vector3.new(
+                targetRoot.Position.X - root.Position.X,
+                0,
+                targetRoot.Position.Z - root.Position.Z
+            )
+            if dir.Magnitude < 0.5 then
+                root.AssemblyAngularVelocity = Vector3.zero
+                return
+            end
+            dir = dir.Unit
+
+            -- Current facing direction, flat
+            local facing = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+            if facing.Magnitude < 0.01 then return end
+            facing = facing.Unit
+
+            -- Already facing close enough — stop spinning
+            if facing:Dot(dir) > 0.998 then
+                root.AssemblyAngularVelocity = Vector3.zero
+                return
+            end
+
+            -- Which way to turn (sign of cross Y)
+            local cross = facing:Cross(dir)
+
+            -- Spin speed scales with how far off we are — faster when far, slower when close
+            -- This makes it look natural and smooth at all times including walking
+            local angle = math.acos(math.clamp(facing:Dot(dir), -1, 1))
+            local speed = math.clamp(angle * 4, 0.5, 5)
+            local spinDir = cross.Y >= 0 and 1 or -1
+
+            root.AssemblyAngularVelocity = Vector3.new(0, speed * spinDir, 0)
+        end)
+
+        maCharConn = player.CharacterAdded:Connect(function()
+            if maTarget and not maTarget.Character then
+                maTarget = maPickTarget()
+            end
+        end)
+    end
+
+    local function disableMA()
+        if not maOn then return end
+        maOn = false; maTarget = nil
+        if maConn     then maConn:Disconnect();     maConn     = nil end
+        if maCharConn then maCharConn:Disconnect(); maCharConn = nil end
+    end
+
+    -- Expose for doClose
+    toggleSetters._disableMA = disableMA
+
+    makeSwitch(moveSection, "Melee Aimbot", false, function(on)
+        if on then enableMA() else disableMA() end
+    end)
+end
+
 makeHeader(moveSection, "Speed")
 
 local sbVbox, ssVbox, igVbox
@@ -2778,6 +2888,8 @@ local function doClose()
     disableSS()
     disableIG()
     disableAP()
+    -- Stop melee aimbot
+    if toggleSetters._disableMA then toggleSetters._disableMA() end
     auto1 = false
     auto2 = false
     instaGrab = false
