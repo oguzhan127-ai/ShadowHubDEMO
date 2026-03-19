@@ -1397,12 +1397,13 @@ makeLabel(moveSection, "Blocks ragdoll, fling, and joint breaks.")
 makeHeader(moveSection, "Aimbot")
 
 do
-    local abOn        = false
-    local abTarget    = nil
-    local abAttach    = nil  -- Attachment for AlignOrientation
-    local abAlign     = nil  -- AlignOrientation constraint
-    local abConn      = nil  -- Heartbeat for target tracking + angle update
-    local abCharConn  = nil
+    local abOn       = false
+    local abConn     = nil
+    local abCharConn = nil
+
+    -- Copied from K7 Hub — velocity-based, no CFrame writes, no AlignOrientation
+    -- Flies character toward enemy's front face using AssemblyLinearVelocity
+    -- Anticheat sees this as normal fast movement, not a rotation exploit
 
     local function pickTarget()
         local char = player.Character
@@ -1424,86 +1425,67 @@ do
         return best
     end
 
-    local function setupConstraint(char)
-        -- Clean old
-        if abAttach then pcall(function() abAttach:Destroy() end) end
-        if abAlign  then pcall(function() abAlign:Destroy()  end) end
-
+    local function flyToFront(targetHRP)
+        local char = player.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
-        local hum  = char and char:FindFirstChildOfClass("Humanoid")
-        if not root or not hum then return end
-
-        -- Disable AutoRotate so Roblox stops overriding our rotation
-        hum.AutoRotate = false
-
-        -- Create attachment on root
-        abAttach = Instance.new("Attachment")
-        abAttach.Name = "AimbotAttach"
-        abAttach.Parent = root
-
-        -- AlignOrientation — physics-based rotation, anticheat sees it as normal physics
-        abAlign = Instance.new("AlignOrientation")
-        abAlign.Name           = "AimbotAlign"
-        abAlign.Mode           = Enum.OrientationAlignmentMode.OneAttachment
-        abAlign.Attachment0    = abAttach
-        abAlign.RigidityEnabled = false
-        abAlign.Responsiveness = 10  -- lower = smoother
-        abAlign.MaxTorque      = 2e5
-        abAlign.Parent         = root
+        if not root then return end
+        -- Aim for a point in FRONT of the target (1.5 studs in their look direction)
+        local front = targetHRP.Position + targetHRP.CFrame.LookVector * 1.5
+        local dir   = Vector3.new(
+            front.X - root.Position.X,
+            0,
+            front.Z - root.Position.Z
+        )
+        if dir.Magnitude < 0.1 then return end
+        -- Push toward them using velocity — same as speed boost, anticheat safe
+        root.AssemblyLinearVelocity = Vector3.new(
+            dir.Unit.X * 56.5,
+            root.AssemblyLinearVelocity.Y,
+            dir.Unit.Z * 56.5
+        )
     end
+
+    local abTarget = nil
+    local abRepick = 0  -- repick timer
 
     local function enableAB()
         if abOn then return end
-        abOn = true
+        abOn    = true
         abTarget = pickTarget()
-
-        setupConstraint(player.Character)
+        abRepick = 0
 
         abConn = RunService.Heartbeat:Connect(function()
             if not abOn then return end
             local char = player.Character
             local root = char and char:FindFirstChild("HumanoidRootPart")
-            if not root or not abAlign then return end
+            if not root then return end
 
-            -- Re-pick target if gone
-            if not abTarget or not abTarget.Character
+            -- Repick target every 2 seconds or if gone
+            abRepick += 1
+            if abRepick >= 120 or not abTarget or not abTarget.Character
             or not abTarget.Character:FindFirstChild("HumanoidRootPart") then
                 abTarget = pickTarget()
+                abRepick = 0
             end
             if not abTarget then return end
 
             local targetRoot = abTarget.Character:FindFirstChild("HumanoidRootPart")
             if not targetRoot then return end
 
-            local myPos  = root.Position
-            local tgtPos = targetRoot.Position
-            local flat   = Vector3.new(tgtPos.X - myPos.X, 0, tgtPos.Z - myPos.Z)
-            if flat.Magnitude < 0.5 then return end
-
-            -- Set CFrame of the AlignOrientation target — horizontal only
-            abAlign.CFrame = CFrame.new(Vector3.zero, flat.Unit)
+            flyToFront(targetRoot)
         end)
 
-        -- Re-setup on respawn
-        abCharConn = player.CharacterAdded:Connect(function(char)
-            task.wait(1)
-            if abOn then
-                setupConstraint(char)
-                abTarget = pickTarget()
-            end
+        abCharConn = player.CharacterAdded:Connect(function()
+            task.wait(0.5)
+            if abOn then abTarget = pickTarget() end
         end)
     end
 
     local function disableAB()
-        abOn = false
+        abOn    = false
         abTarget = nil
         if abConn     then abConn:Disconnect();     abConn     = nil end
         if abCharConn then abCharConn:Disconnect(); abCharConn = nil end
-        if abAttach   then pcall(function() abAttach:Destroy() end); abAttach = nil end
-        if abAlign    then pcall(function() abAlign:Destroy()  end); abAlign  = nil end
-        -- Re-enable AutoRotate
-        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.AutoRotate = true end
     end
 
     local abSwitch = makeSwitch(moveSection, "Aimbot", false, function(on)
@@ -1511,7 +1493,7 @@ do
     end)
     toggleSetters.abOn = function(v) abSwitch.set(v, true) end
 
-    makeLabel(moveSection, "Smoothly locks body to nearest player.")
+    makeLabel(moveSection, "Flies body toward nearest player. No CFrame = no anticheat.")
 end
 
 makeHeader(moveSection, "Speed")
