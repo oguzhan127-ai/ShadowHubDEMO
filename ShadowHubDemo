@@ -1555,34 +1555,38 @@ do
         if v then enableAB() else disableAB() end
     end
 
-    -- Drag logic — identical pattern to duel buttons, works on mobile
-    local lDragging, lDragStart, lCardStart = false, nil, nil
-    local lHasDragged, lTouchId = false, nil
+    -- ============================================================
+    -- CLICK + DRAG — bulletproof for both PC and Mobile
+    -- Uses a simple pressed flag approach, no InputEnded comparison
+    -- ============================================================
+    local lPressed  = false
+    local lDragging = false
+    local lDragStart, lCardStart = nil, nil
     local L_DRAG_THRESH = 6
 
     lHit.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1
-        or inp.UserInputType == Enum.UserInputType.Touch then
-            lDragging   = true
-            lHasDragged = false  -- always reset on new press
-            lTouchId    = inp
-            lDragStart  = Vector2.new(inp.Position.X, inp.Position.Y)
-            lCardStart  = lCard.Position
-        end
+        if inp.UserInputType ~= Enum.UserInputType.MouseButton1
+        and inp.UserInputType ~= Enum.UserInputType.Touch then return end
+        lPressed    = true
+        lDragging   = false
+        lDragStart  = Vector2.new(inp.Position.X, inp.Position.Y)
+        lCardStart  = lCard.Position
     end)
 
     UserInputService.InputChanged:Connect(function(inp)
-        if not lDragging then return end
+        if not lPressed then return end
         if inp.UserInputType ~= Enum.UserInputType.MouseMovement
         and inp.UserInputType ~= Enum.UserInputType.Touch then return end
+        if not lDragStart then return end
         local delta = Vector2.new(inp.Position.X, inp.Position.Y) - lDragStart
-        if delta.Magnitude > L_DRAG_THRESH then lHasDragged = true end
-        if lHasDragged then
+        if delta.Magnitude > L_DRAG_THRESH then
+            lDragging = true
+        end
+        if lDragging then
             lCard.Position = UDim2.new(
                 lCardStart.X.Scale, lCardStart.X.Offset + delta.X,
                 lCardStart.Y.Scale, lCardStart.Y.Offset + delta.Y
             )
-            -- Update saved position vars live so config save captures current pos
             lPosScaleX = lCard.Position.X.Scale
             lPosOffX   = lCard.Position.X.Offset
             lPosScaleY = lCard.Position.Y.Scale
@@ -1590,22 +1594,16 @@ do
         end
     end)
 
+    -- PC release
     lHit.InputEnded:Connect(function(inp)
-        if inp == lTouchId then
-            lDragging = false
-            -- Only toggle if this was a tap, not a drag
-            if not lHasDragged then
-                setLockActive(not lActive)
-            end
-            -- Reset flag AFTER the click fires so MouseButton1Click also gets clean state
-            task.defer(function() lHasDragged = false end)
+        if inp.UserInputType ~= Enum.UserInputType.MouseButton1
+        and inp.UserInputType ~= Enum.UserInputType.Touch then return end
+        local wasDrag = lDragging
+        lPressed  = false
+        lDragging = false
+        if not wasDrag then
+            setLockActive(not lActive)
         end
-    end)
-
-    -- PC: MouseButton1Click fires after InputEnded, so check flag before defer clears it
-    lHit.MouseButton1Click:Connect(function()
-        -- lHasDragged is still true here if dragged; defer above will clear it after
-        -- So we do nothing here — InputEnded handles the toggle for both PC and mobile
     end)
 
     -- Slide-in: always from top, lands at last saved position
@@ -2529,17 +2527,18 @@ local function doClose()
     disableAP()
     auto1 = false
     auto2 = false
-    duelInstaGrab = false
+    instaGrab = false
     TweenService:Create(main, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
         Size = UDim2.new(0, 0, 0, 0),
         Position = UDim2.new(0.5, 0, 0.5, 0),
     }):Play()
     task.delay(0.3, function()
-        if sg and sg.Parent then sg:Destroy() end
+        -- Destroy all HUDs
+        if sg     and sg.Parent     then sg:Destroy() end
         if duelSg and duelSg.Parent then duelSg:Destroy() end
-        if toggleSetters._lockSg and toggleSetters._lockSg.Parent then
-            toggleSetters._lockSg:Destroy()
-        end
+        -- Lock button — stored reference
+        local lsg = toggleSetters._lockSg
+        if lsg and lsg.Parent then lsg:Destroy() end
     end)
 end
 
