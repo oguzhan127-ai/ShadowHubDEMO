@@ -414,15 +414,17 @@ local function makeSection(name)
     return sf
 end
 
+-- Single shared indicator line that slides between tabs
+local sharedInd = nil  -- created after sidebar exists
+
 local function switchTab(name)
     if activeTab == name then return end
     if activeTab then
         if sections[activeTab] then sections[activeTab].Visible = false end
         if tabBtns[activeTab] then
-            tw(tabBtns[activeTab].btn, 0.15, {BackgroundColor3 = C.sidebar})
-            tabBtns[activeTab].ind.BackgroundTransparency = 1
-            tw(tabBtns[activeTab].lbl, 0.15, {TextColor3 = C.sub})
-            tw(tabBtns[activeTab].ico, 0.15, {TextColor3 = C.sub})
+            tw(tabBtns[activeTab].btn, 0.18, {BackgroundColor3 = C.sidebar})
+            tw(tabBtns[activeTab].lbl, 0.18, {TextColor3 = C.sub})
+            tw(tabBtns[activeTab].ico, 0.18, {TextColor3 = C.sub})
             local g = tabBtns[activeTab].btn:FindFirstChildOfClass("UIGradient")
             if g then g:Destroy() end
         end
@@ -430,17 +432,27 @@ local function switchTab(name)
     activeTab = name
     if sections[name] then sections[name].Visible = true end
     if tabBtns[name] then
-        tw(tabBtns[name].btn, 0.15, {BackgroundColor3 = Color3.fromRGB(22, 10, 50)})
-        tabBtns[name].ind.BackgroundTransparency = 0
-        tw(tabBtns[name].lbl, 0.15, {TextColor3 = Color3.fromRGB(220, 190, 255)})
-        tw(tabBtns[name].ico, 0.15, {TextColor3 = Color3.fromRGB(160, 80, 255)})
-        -- Add glow gradient to active tab
+        tw(tabBtns[name].btn, 0.18, {BackgroundColor3 = Color3.fromRGB(22, 10, 50)})
+        tw(tabBtns[name].lbl, 0.18, {TextColor3 = Color3.fromRGB(220, 190, 255)})
+        tw(tabBtns[name].ico, 0.18, {TextColor3 = Color3.fromRGB(160, 80, 255)})
         local g = Instance.new("UIGradient", tabBtns[name].btn)
         g.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0,   Color3.fromRGB(35, 14, 80)),
-            ColorSequenceKeypoint.new(1,   Color3.fromRGB(12, 6, 28)),
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 14, 80)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 6,  28)),
         })
         g.Rotation = 135
+        -- Animate shared indicator to new tab's position
+        if sharedInd then
+            local btnAbsPos = tabBtns[name].btn.AbsolutePosition
+            local sideAbsPos = sidebar.AbsolutePosition
+            local relY = btnAbsPos.Y - sideAbsPos.Y
+            local btnH = tabBtns[name].btn.AbsoluteSize.Y
+            local indH = math.floor(btnH * 0.65)
+            TweenService:Create(sharedInd,
+                TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+                {Position = UDim2.new(0, 0, 0, relY + math.floor((btnH - indH) / 2))}
+            ):Play()
+        end
     end
 end
 
@@ -453,25 +465,9 @@ local function makeTab(name, icon)
     btn.Parent = sidebar
     corner(btn, 8)
 
-    local ind = Instance.new("Frame", btn)
-    ind.Size = UDim2.new(0, 4, 0.65, 0)
-    ind.Position = UDim2.new(0, 1, 0.175, 0)
-    ind.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
-    ind.BackgroundTransparency = 1
-    ind.BorderSizePixel = 0
-    corner(ind, 2)
-    -- Vibrant purple to blue gradient — like image 2
-    local indGrad = Instance.new("UIGradient", ind)
-    indGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0,   Color3.fromRGB(180, 60, 255)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(120, 80, 255)),
-        ColorSequenceKeypoint.new(1,   Color3.fromRGB(40,  160, 255)),
-    })
-    indGrad.Rotation = 90
-
     local ico = Instance.new("TextLabel", btn)
     ico.Size = UDim2.new(0, 20, 1, 0)
-    ico.Position = UDim2.new(0, 8, 0, 0)
+    ico.Position = UDim2.new(0, 10, 0, 0)
     ico.BackgroundTransparency = 1
     ico.Text = icon
     ico.Font = Enum.Font.GothamBold
@@ -482,18 +478,40 @@ local function makeTab(name, icon)
     lbl.Size = UDim2.new(1, -34, 1, 0)
     lbl.Position = UDim2.new(0, 32, 0, 0)
     lbl.BackgroundTransparency = 1
-    lbl.Text = name
+    lbl.Text = "• " .. name   -- bullet dot
     lbl.Font = Enum.Font.GothamSemibold
     lbl.TextSize = isMobile and 11 or 12
     lbl.TextColor3 = C.sub
     lbl.TextXAlignment = Enum.TextXAlignment.Left
 
+    -- Dummy ind for compat (not visible — sharedInd handles display)
+    local ind = Instance.new("Frame", btn)
+    ind.Size = UDim2.new(0, 0, 0, 0)
+    ind.BackgroundTransparency = 1
+    ind.BorderSizePixel = 0
+
     tabBtns[name] = {btn = btn, ind = ind, lbl = lbl, ico = ico}
 
-    local function onClick()
-        switchTab(name)
+    -- Create shared indicator on first tab
+    if not sharedInd then
+        sharedInd = Instance.new("Frame")
+        sharedInd.Size = UDim2.new(0, 3, 0, isMobile and 22 or 24)
+        sharedInd.Position = UDim2.new(0, 0, 0, 8)
+        sharedInd.BackgroundColor3 = Color3.fromRGB(180, 60, 255)
+        sharedInd.BorderSizePixel = 0
+        sharedInd.ZIndex = 5
+        sharedInd.Parent = sidebar
+        corner(sharedInd, 2)
+        local sg2 = Instance.new("UIGradient", sharedInd)
+        sg2.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0,   Color3.fromRGB(200, 60, 255)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(130, 80, 255)),
+            ColorSequenceKeypoint.new(1,   Color3.fromRGB(40,  170, 255)),
+        })
+        sg2.Rotation = 90
     end
-    btn.MouseButton1Click:Connect(onClick)
+
+    btn.MouseButton1Click:Connect(function() switchTab(name) end)
     return btn
 end
 
@@ -673,6 +691,17 @@ makeTab("Home",     "⌂")
 makeTab("Movement", "")
 
 switchTab("Home")
+-- Position shared indicator on first tab after layout resolves
+task.defer(function()
+    if sharedInd and tabBtns["Home"] then
+        local btnAbsPos  = tabBtns["Home"].btn.AbsolutePosition
+        local sideAbsPos = sidebar.AbsolutePosition
+        local relY = btnAbsPos.Y - sideAbsPos.Y
+        local btnH = tabBtns["Home"].btn.AbsoluteSize.Y
+        local indH = sharedInd.AbsoluteSize.Y
+        sharedInd.Position = UDim2.new(0, 0, 0, relY + math.floor((btnH - indH) / 2))
+    end
+end)
 
 --------------------------------------------------------
 -- HOME CONTENT
