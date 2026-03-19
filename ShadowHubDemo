@@ -214,45 +214,64 @@ aline.Parent = topbar
 -- Glow effect on the line
 local alineGrad = Instance.new("UIGradient", aline)
 alineGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0,   Color3.fromRGB(80, 0, 200)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(180, 80, 255)),
-    ColorSequenceKeypoint.new(1,   Color3.fromRGB(80, 0, 200)),
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(120, 40, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(160, 80, 255)),
+    ColorSequenceKeypoint.new(0.8, Color3.fromRGB(80,  140, 255)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(40,  180, 255)),
 })
 
 -- Title — SHADOW HUB + SETTINGS style like reference, with by @un4ig
+-- Vertical gradient accent line (like reference image — left of title)
+local titleLine = Instance.new("Frame")
+titleLine.Size = UDim2.new(0, 3, 0, 32)
+titleLine.Position = UDim2.new(0, 12, 0.5, -16)
+titleLine.BackgroundColor3 = C.accent
+titleLine.BorderSizePixel = 0
+titleLine.ZIndex = 6
+titleLine.Parent = topbar
+corner(titleLine, 2)
+local titleLineGrad = Instance.new("UIGradient", titleLine)
+titleLineGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0,   Color3.fromRGB(160, 80, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(100, 60, 255)),
+    ColorSequenceKeypoint.new(1,   Color3.fromRGB(60,  120, 255)),
+})
+titleLineGrad.Rotation = 90
+
+-- Title — SHADOW HUB + SETTINGS
 local titleMain = Instance.new("TextLabel")
-titleMain.Size = UDim2.new(0, 0, 1, 0)
+titleMain.Size = UDim2.new(0, 0, 0, 20)
 titleMain.AutomaticSize = Enum.AutomaticSize.X
-titleMain.Position = UDim2.new(0, 14, 0, 0)
+titleMain.Position = UDim2.new(0, 22, 0, 8)
 titleMain.BackgroundTransparency = 1
 titleMain.Text = "SHADOW HUB"
 titleMain.Font = Enum.Font.GothamBlack
-titleMain.TextSize = isMobile and 15 or 18
-titleMain.TextColor3 = Color3.fromRGB(220, 190, 255)
+titleMain.TextSize = isMobile and 14 or 16
+titleMain.TextColor3 = Color3.fromRGB(225, 195, 255)
 titleMain.TextXAlignment = Enum.TextXAlignment.Left
 titleMain.ZIndex = 6
 titleMain.Parent = topbar
 
 local titleSub = Instance.new("TextLabel")
-titleSub.Size = UDim2.new(0, 80, 1, 0)
-titleSub.Position = UDim2.new(0, isMobile and 128 or 152, 0, 0)
+titleSub.Size = UDim2.new(0, 70, 0, 20)
+titleSub.Position = UDim2.new(0, isMobile and 122 or 142, 0, 10)
 titleSub.BackgroundTransparency = 1
 titleSub.Text = "SETTINGS"
 titleSub.Font = Enum.Font.GothamBold
-titleSub.TextSize = isMobile and 9 or 11
-titleSub.TextColor3 = Color3.fromRGB(140, 110, 200)
+titleSub.TextSize = isMobile and 9 or 10
+titleSub.TextColor3 = Color3.fromRGB(130, 100, 190)
 titleSub.TextXAlignment = Enum.TextXAlignment.Left
 titleSub.ZIndex = 6
 titleSub.Parent = topbar
 
 local titleBy = Instance.new("TextLabel")
-titleBy.Size = UDim2.new(1, -120, 0, 14)
-titleBy.Position = UDim2.new(0, 14, 1, -16)
+titleBy.Size = UDim2.new(0, 120, 0, 14)
+titleBy.Position = UDim2.new(0, 22, 0, 30)
 titleBy.BackgroundTransparency = 1
 titleBy.Text = "by @un4ig"
 titleBy.Font = Enum.Font.GothamMedium
-titleBy.TextSize = 9
-titleBy.TextColor3 = Color3.fromRGB(110, 85, 170)
+titleBy.TextSize = 11
+titleBy.TextColor3 = Color3.fromRGB(120, 95, 180)
 titleBy.TextXAlignment = Enum.TextXAlignment.Left
 titleBy.ZIndex = 6
 titleBy.Parent = topbar
@@ -435,12 +454,20 @@ local function makeTab(name, icon)
     corner(btn, 8)
 
     local ind = Instance.new("Frame", btn)
-    ind.Size = UDim2.new(0, 3, 0.55, 0)
-    ind.Position = UDim2.new(0, 1, 0.225, 0)
+    ind.Size = UDim2.new(0, 3, 0.6, 0)
+    ind.Position = UDim2.new(0, 1, 0.2, 0)
     ind.BackgroundColor3 = C.accent
     ind.BackgroundTransparency = 1
     ind.BorderSizePixel = 0
     corner(ind, 2)
+    -- Purple to blue gradient on the indicator line
+    local indGrad = Instance.new("UIGradient", ind)
+    indGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(160, 60, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(100, 80, 255)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(60,  160, 255)),
+    })
+    indGrad.Rotation = 90
 
     local ico = Instance.new("TextLabel", btn)
     ico.Size = UDim2.new(0, 20, 1, 0)
