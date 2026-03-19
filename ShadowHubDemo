@@ -151,12 +151,15 @@ task.spawn(function()
         dotData[i] = { dot = dot, x = x, y = y, speed = speed, alpha = alpha }
     end
 
+    local frameSkip = 0
     RunService.Heartbeat:Connect(function()
         if not main or not main.Parent then return end
+        frameSkip += 1
+        if frameSkip < 3 then return end
+        frameSkip = 0
         for _, d in ipairs(dotData) do
-            d.y = d.y + d.speed
+            d.y = d.y + d.speed * 3
             if d.y > 1.05 then
-                -- Reset to top with new random x
                 d.y = -0.03
                 d.x = math.random(1, 99) / 100
                 d.speed = math.random(2, 5) / 1000
@@ -443,15 +446,18 @@ local function switchTab(name)
         g.Rotation = 135
         -- Animate shared indicator to new tab's position
         if sharedInd then
-            local btnAbsPos = tabBtns[name].btn.AbsolutePosition
-            local sideAbsPos = sidebar.AbsolutePosition
-            local relY = btnAbsPos.Y - sideAbsPos.Y
-            local btnH = tabBtns[name].btn.AbsoluteSize.Y
-            local indH = math.floor(btnH * 0.65)
-            TweenService:Create(sharedInd,
-                TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-                {Position = UDim2.new(0, 0, 0, relY + math.floor((btnH - indH) / 2))}
-            ):Play()
+            task.spawn(function()
+                task.wait()
+                local btnAbsPos  = tabBtns[name].btn.AbsolutePosition
+                local sideAbsPos = sidebar.AbsolutePosition
+                local relY = btnAbsPos.Y - sideAbsPos.Y
+                local btnH = tabBtns[name].btn.AbsoluteSize.Y
+                local indH = sharedInd.AbsoluteSize.Y
+                TweenService:Create(sharedInd,
+                    TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+                    {Position = UDim2.new(0, 0, 0, relY + math.floor((btnH - indH) / 2))}
+                ):Play()
+            end)
         end
     end
 end
@@ -532,13 +538,20 @@ local function makeHeader(parent, text)
         ColorSequenceKeypoint.new(1,   Color3.fromRGB(8,  4,  18)),
     })
     hGrad.Rotation = 90
-    -- Left accent bar with glow
+    -- Left accent bar with purple-to-blue gradient
     local bar = Instance.new("Frame", h)
     bar.Size = UDim2.new(0, 3, 0.6, 0)
     bar.Position = UDim2.new(0, 6, 0.2, 0)
-    bar.BackgroundColor3 = Color3.fromRGB(160, 80, 255)
+    bar.BackgroundColor3 = Color3.fromRGB(180, 60, 255)
     bar.BorderSizePixel = 0
     corner(bar, 2)
+    local barGrad = Instance.new("UIGradient", bar)
+    barGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(200, 60, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(130, 80, 255)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(40,  170, 255)),
+    })
+    barGrad.Rotation = 90
     local lbl = Instance.new("TextLabel", h)
     lbl.Size = UDim2.new(1, -22, 1, 0)
     lbl.Position = UDim2.new(0, 18, 0, 0)
@@ -1699,9 +1712,16 @@ do
     local bar = Instance.new("Frame", hRow)
     bar.Size = UDim2.new(0, 3, 0.6, 0)
     bar.Position = UDim2.new(0, 6, 0.2, 0)
-    bar.BackgroundColor3 = Color3.fromRGB(160, 80, 255)
+    bar.BackgroundColor3 = Color3.fromRGB(180, 60, 255)
     bar.BorderSizePixel = 0
     corner(bar, 2)
+    local barGrad2 = Instance.new("UIGradient", bar)
+    barGrad2.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(200, 60, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(130, 80, 255)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(40,  170, 255)),
+    })
+    barGrad2.Rotation = 90
     local hLbl = Instance.new("TextLabel", hRow)
     hLbl.Size = UDim2.new(1, -80, 1, 0)
     hLbl.Position = UDim2.new(0, 18, 0, 0)
